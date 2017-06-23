@@ -1,12 +1,15 @@
 pragma solidity ^0.4.11;
 
-import "ds-math/math.sol";
-import "ds-token/token.sol";
+//import "ds-math/math.sol";
+//import "ds-token/token.sol";
+
+import "./lib/ds-math/math.sol";
+import "./lib/ds-token/token.sol";
 
 contract ViewlyToken {
     address public maintainer;
     // account where the crowdsale funds will be proxied to
-    address public constant multisig;
+    address public constant multisig = 0x0;  // todo fix this
     // uint public creationTime = now;
 
     DSToken  public  VIEW;
@@ -40,12 +43,12 @@ contract ViewlyToken {
 
 
     modifier onlyBy(address _acc) {
-        if (acc != msg.sender) throw;
+        if (_acc != msg.sender) throw;
         _;
     }
 
     function initializeSale() {
-        if (state != state.Pending) {
+        if (state != State.Pending) {
             throw;
         }
     }
@@ -55,7 +58,7 @@ contract ViewlyToken {
         returns(bool)
     {
         // we can only iterate trough states once
-        if (state == state.Done) return false;
+        if (state == State.Done) return false;
         state = State(uint(state) + 1);
         return true;
     }

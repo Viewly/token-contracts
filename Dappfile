@@ -1,6 +1,6 @@
 name            viewly-token
-description     A newly-created dapp
-version         0.0.0
+description     Viewly Crowsdsale Token
+version         0.0.1
 
-author          user
+author          furion
 license         Apache-2.0
