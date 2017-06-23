@@ -11,7 +11,7 @@
 
 pragma solidity ^0.4.10;
 
-import "../ds-test/test.sol";
+import "./test.sol";
 
 import "./stop.sol";
 
