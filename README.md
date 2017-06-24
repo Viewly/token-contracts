@@ -1,13 +1,21 @@
 ## Introduction
-This document has been created to explain the smart contract in **Plain English**, so that people whom aren't developers can undestand 
+This document has been created to explain the smart contract in **Plain English**, so that people whom aren't developers can understand 
 the mechanics of the Viewly Crowdsale. We will also use this opportunity to clarify our intentions, and explain why we made certain decisions.
 
+## Code is law
+We believe that the crowdsale contract should be immutable. 
+In our view, changing the terms of the crowdsale or the behaviour of the crowdsale contract after the crowdsale has started is shady, if not outright fraudulent.
+
+### No backdoors
+Furthermore, this contract is *non upgradable*, and it provides no capability to *mint* new tokens, or *burn* people's tokens.
+We believe that such features leave the door open for abuse, and decrease the trustworthiness of the token.
 
 ## No Gas Limit
-This sale contract will have no gas limit.
+This sale contract will have no gas limit. 
 
 ### Don't clog the network
-Setting a gas limit might clog the Ethereum network (see Bancor sale).
+Setting a gas limit, in combination with high transaction volume might clog the Ethereum network (see Bancor sale).
+![](http://i.imgur.com/dlNarkq.png)
 
 ### Targeting Sophisticated Buyers
 Having no gas limit enables sophisticated buyers to perform crowdsale *sniping*. By jacking up the gas price, they are
@@ -23,15 +31,6 @@ There is a very small overlap between our target users, and the speculators buyi
 
 For this reason, we will set up an official faucet, and fairly distribute a portion of the tokens that are held back,
 to the content creators and their fans, once our chain launches.
-
-## Code is law
-We believe that the crowdsale contract should be immutable. 
-In our view, changing the terms of the crowdsale or the behaviour of the crowdsale contract after the crowdsale has started is shady, if not outright fraudulent.
-
-### No backdoors
-Furthermore, this contract is *non upgradable*, and it provides no capability to *mint* new tokens, or *burn* people's tokens.
-We believe that such features leave the door open for abuse, and decrease the trustworthiness of the token.
-
 
 ## Fair and Predictable Reserves Allocation
 As an example, lets look at BAT's sale contract. In BAT's case, the reserved tokens are allocated before the sale. 
@@ -63,11 +62,10 @@ This means, that we cannot know in advance what % of the tokens has been held ba
 ```
 
 
-
 In the Viewly contract however, we allocate the reserved tokens **after** the crowdsale is complete.
-This way we guarantee that the reserved allocation will be exactly the pre-set fixed %, regardless of how many tokens are sold.
+This way we can guarantee that the reserved allocation will be exactly the pre-set fixed %, regardless of how many tokens are sold.
 
-With the code below, exactly 20% of the token supply will be reserved:
+We perform the allocation in `finalizeSale()`, and we guarantee that exactly 20% of the token supply will be reserved:
 ```solidity
 uint128 public constant tokenCreationCap = 100000000;   // 100_000_000
 uint128 public constant reservedAllocation = 0.2 ether; // 20%
