@@ -23,8 +23,7 @@ contract ViewlySale is DSMath {
 
 
     // crowsdale specs
-    uint public constant saleDurationDays = 3;
-    uint public constant BLOCKS_PER_DAY = 1234; // todo set this
+    uint public constant saleDurationHours = 3 * 24;  // 3 days
 
     // variables calculated on sale start
     uint128 public tokenExchangeRate;  // eg. 1000 VIEW for 1 ETH
@@ -39,6 +38,15 @@ contract ViewlySale is DSMath {
         Done
     }
     State public state = State.Pending;
+
+    // future proofing
+    struct Claim {
+        bytes32 viewlyAddr;
+        uint256 amount;
+    }
+    mapping (address => Claim) public futureClaims;
+    mapping (bytes32 => address) public reverseFutureClaims;
+
 
     event Debug(uint256 msg);
 
@@ -113,6 +121,10 @@ contract ViewlySale is DSMath {
         fundingStartBlock = add(block.number, blockFutureOffset);
 
         // calculate fundingEndBlock
+        uint blocksPerHour = mul(div(60, 17), 60);
+        uint blockNumDuration = mul(blocksPerHour, saleDurationHours);
+        fundingEndBlock = add(fundingStartBlock, blockNumDuration);
+
         // calculate tokenExchangeRate
 
     }
@@ -161,11 +173,36 @@ contract ViewlySale is DSMath {
         return true;
     }
 
+    // side effect of this is that in finalizeSale(), new maintainer's
+    // address will be used as a temporary store of reservedTokens
+    // this shouldn't be a problem, since the tokens are transferred to the
+    // multisig account atomically
     function changeMaintainer(address new_maintainer)
-    onlyBy(maintainer)
-    returns(bool)
+        onlyBy(maintainer)
+        returns(bool)
     {
         maintainer = new_maintainer;
         return true;
+    }
+
+
+    // future proofing
+    // allow token holders to register their Viewly public key
+    // this operation destroys VIEW tokens on Ethereum
+    // addresses registered here will be included in Viewly genesis, or
+    // be claimable at the registration faucet
+    function registerAndBurn(bytes32 viewlyChainAddr) {
+        assert(state == State.Done);
+        // uint256 balance = VIEW.balanceof(msg.sender);
+        // assert(balance > 0);
+        // VIEW.burn(balance);
+        // futureClaims[msg.sender] = Claim{ ... }
+        // reverseFutureClaims[viewlyChainAddr] = msg.sender;
+    }
+
+    function balanceOfViewlyAddr(bytes32 viewlyChainAddr) returns(uint256) {
+        address addr = reverseFutureClaims[viewlyChainAddr];
+        assert(addr != 0x0);
+        return futureClaims[addr].amount;
     }
 }
