@@ -31,3 +31,51 @@ In our view, changing the terms of the crowdsale or the behaviour of the crowdsa
 ### No backdoors
 Furthermore, this contract is *non upgradable*, and it provides no capability to *mint* new tokens, or *burn* people's tokens.
 We believe that such features leave the door open for abuse, and decrease the trustworthiness of the token.
+
+
+## Fair and Predictable Reserves Allocation
+As an example, lets look at BAT's sale contract. In BAT's case, the reserved tokens are allocated before the sale. 
+This means, that we cannot know in advance what % of the tokens has been held back. It could be anywhere between 30% and 75%.
+```solidity
+    uint256 public constant batFund = 500 * (10**6) * 10**decimals;   // 500m BAT reserved for Brave Intl use
+    uint256 public constant tokenExchangeRate = 6400; // 6400 BAT tokens per 1 ETH
+    uint256 public constant tokenCreationCap =  1500 * (10**6) * 10**decimals;
+    uint256 public constant tokenCreationMin =  675 * (10**6) * 10**decimals;
+
+
+    // constructor
+    function BAToken(
+        address _ethFundDeposit,
+        address _batFundDeposit,
+        uint256 _fundingStartBlock,
+        uint256 _fundingEndBlock)
+    {
+      isFinalized = false;                   //controls pre through crowdsale state
+      ethFundDeposit = _ethFundDeposit;
+      batFundDeposit = _batFundDeposit;
+      fundingStartBlock = _fundingStartBlock;
+      fundingEndBlock = _fundingEndBlock;
+      totalSupply = batFund;
+      balances[batFundDeposit] = batFund;    // Deposit Brave Intl share
+      CreateBAT(batFundDeposit, batFund);  // logs Brave Intl fund
+    }
+
+```
+
+
+
+In the Viewly contract however, we allocate the reserved tokens **after** the crowdsale is complete.
+This way we guarantee that the reserved allocation will be exactly the pre-set fixed %, regardless of how many tokens are sold.
+
+With the code below, exactly 20% of the token supply will be reserved:
+```solidity
+uint128 public constant tokenCreationCap = 100000000;   // 100_000_000
+uint128 public constant reservedAllocation = 0.2 ether; // 20%
+
+function calcReservedSupply() constant returns(uint256) {
+    uint256 totalSupply = VIEW.totalSupply();
+    uint256 supplyPct = sub(1, reservedAllocation);
+    uint256 reservedSupply = mul(div(totalSupply, supplyPct), reservedAllocation);
+    return reservedSupply;
+}
+```
