@@ -44,8 +44,8 @@ contract ViewlySale is DSMath {
 
 
     function ViewlyToken(
-    //uint128  foundersAllocation_,
-    //string   foundersKey_
+        //uint128  foundersAllocation_,
+        //string   foundersKey_
     ) {
         // set sale contract maintainer
         maintainer = msg.sender;
@@ -53,16 +53,6 @@ contract ViewlySale is DSMath {
         // initialize the ERC-20 Token
         VIEW = new DSToken('VIEW');
         assert(VIEW.totalSupply() == 0);
-
-        // mint reserved coins
-        // while this implementation is convenient from programming perspective,
-        // these tokens should be awarded with each sale, in issueToken()
-        // otherwise, reserved allocation will be incorrect in the case
-        // where not all tokens are sold
-        uint128 reservedTokens = wmul(tokenCreationCap, reservedAllocation);
-        VIEW.mint(reservedTokens);
-        assert(VIEW.totalSupply() < tokenCreationCap);
-
     }
 
     // fallback function
@@ -107,7 +97,7 @@ contract ViewlySale is DSMath {
         uint256 blockFutureOffset,
         uint ethUsdPrice
     )
-        onlyBy(maintainer)
+    onlyBy(maintainer)
     {
         // sanity checks
         assert(state == State.Pending);
@@ -126,6 +116,34 @@ contract ViewlySale is DSMath {
 
     }
 
+    // create reservedAllocation, and transfer it to the multisig wallet
+    // then close the sale state (State.Done)
+    function finalizeSale()
+        isRunning
+        onlyBy(maintainer)
+    {
+        assert(block.number > fundingEndBlock);
+
+        // mint reserved coins
+        uint256 totalSupply = VIEW.totalSupply();
+        uint256 supplyPct = sub(1, reservedAllocation);
+        uint256 reservedSupply = mul(div(totalSupply, supplyPct), reservedAllocation);
+
+        // we need to send to multisigAddr
+        VIEW.mint(cast(reservedSupply));
+        uint256 balance = VIEW.balanceOf(msg.sender);
+        assert(balance > 0);
+        if (!VIEW.transfer(multisigAddr, balance)) throw;
+        nextState();
+    }
+
+    // anyone can call this function to drain the contract
+    // and forward funds into secure multisig wallet
+    function secureETH() returns(bool) {
+        assert(this.balance > 0);
+        return multisigAddr.send(this.balance);
+    }
+
     function nextState()
         onlyBy(maintainer)
         returns(bool)
@@ -137,8 +155,8 @@ contract ViewlySale is DSMath {
     }
 
     function changeMaintainer(address new_maintainer)
-        onlyBy(maintainer)
-        returns(bool)
+    onlyBy(maintainer)
+    returns(bool)
     {
         maintainer = new_maintainer;
         return true;
