@@ -81,7 +81,8 @@ contract ViewlySale is DSMath {
         uint256 tokens = mul(msg.value, tokenExchangeRate);
 
         // check if the sale is over the cap
-        uint256 postSaleSupply = add(VIEW.totalSupply(), tokens);
+        uint256 currentSupply = add(VIEW.totalSupply(), calcReservedSupply());
+        uint256 postSaleSupply = add(currentSupply, tokens);
         if (tokenCreationCap < postSaleSupply) throw;
 
         // award the tokens
@@ -124,17 +125,23 @@ contract ViewlySale is DSMath {
     {
         assert(block.number > fundingEndBlock);
 
-        // mint reserved coins
+        // mint reserved tokens
+        uint256 reservedSupply = calcReservedSupply();
+        VIEW.mint(cast(reservedSupply));
+
+        // transfer reserved tokens to multisig wallet
+        uint256 balance = VIEW.balanceOf(msg.sender);
+        if (!VIEW.transfer(multisigAddr, balance)) throw;
+
+        // State.Done
+        nextState();
+    }
+
+    function calcReservedSupply() constant returns(uint256) {
         uint256 totalSupply = VIEW.totalSupply();
         uint256 supplyPct = sub(1, reservedAllocation);
         uint256 reservedSupply = mul(div(totalSupply, supplyPct), reservedAllocation);
-
-        // we need to send to multisigAddr
-        VIEW.mint(cast(reservedSupply));
-        uint256 balance = VIEW.balanceOf(msg.sender);
-        assert(balance > 0);
-        if (!VIEW.transfer(multisigAddr, balance)) throw;
-        nextState();
+        return reservedSupply;
     }
 
     // anyone can call this function to drain the contract
