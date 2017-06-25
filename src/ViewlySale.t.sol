@@ -2,13 +2,13 @@ pragma solidity ^0.4.11;
 
 import "ds-test/test.sol";
 
-import "./ViewlyToken.sol";
+import "./ViewlySale.sol";
 
-contract ViewlyTokenTest is DSTest {
-    ViewlyToken token;
+contract ViewlySaleTest is DSTest {
+    ViewlySale token;
 
     function setUp() {
-        token = new ViewlyToken(10, 1000, 0.1 ether, "0x6fb078e52acdb08a524804307804b4ad1517318e");
+        token = new ViewlySale();
     }
 
     function testFail_basic_sanity() {
