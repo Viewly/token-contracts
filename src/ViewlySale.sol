@@ -6,14 +6,14 @@ pragma solidity ^0.4.11;
 //import "ds-math/math.sol";
 //import "ds-token/token.sol";
 
-import "./math.sol";
-import "./token.sol";
-import "./note.sol";
+import "ds-math/math.sol";
+import "ds-note/note.sol";
+import "ds-auth/auth.sol";
 
-contract ViewlySale is DSMath, DSNote {
+import  {DSToken} from "ds-token/token.sol";
 
-    // crowdsale owner
-    address public maintainer;
+contract ViewlySale is DSAuth, DSMath, DSNote {
+
     // account where the crowdsale funds will be proxied to
     address public constant multisigAddr = 0x0;  // todo set this
 
@@ -62,22 +62,25 @@ contract ViewlySale is DSMath, DSNote {
     event Debug(uint256 msg);
 
 
-    function ViewlyToken(
-        //uint128  foundersAllocation_,
-        //string   foundersKey_
-    ) {
-        // set sale contract maintainer
-        maintainer = msg.sender;
-
+    function ViewlySale() {
         // initialize the ERC-20 Token
-        VIEW = new DSToken('VIEW');
+        VIEW = new DSToken("VIEW");
         assert(VIEW.totalSupply() == 0);
+        assert(VIEW.owner() == address(this));
+        assert(VIEW.authority() == DSAuthority(0));
     }
 
-    modifier onlyBy(address _acc) {
-        if (_acc != msg.sender) throw;
-        _;
-    }
+//    function initialize(DSToken viewToken) auth note {
+//        assert(state == State.Pending);
+//
+//        // initialize the ERC-20 Token
+//        assert(viewToken.totalSupply() == 0);
+////        assert(address(viewToken) == address(0));
+//        assert(viewToken.owner() == address(this));
+//        assert(viewToken.authority() == DSAuthority(0));
+//        VIEW = viewToken;
+//
+//    }
 
     modifier isRunning() {
         if (state != State.Running) throw;
@@ -112,20 +115,13 @@ contract ViewlySale is DSMath, DSNote {
 
     }
 
-
     function startSale(
         uint256 blockFutureOffset,
         uint128 ethUsdPrice
     )
-    onlyBy(maintainer)
-    note
+        auth
+        note
     {
-        // sanity checks
-        assert(state == State.Pending);
-        // assert(address(VIEW-uninitialized) == address(0));
-        assert(VIEW.owner() == address(this));
-        assert(VIEW.authority() == DSAuthority(0));
-
         // the sale can be in Running state before its fundingStartBlock
         // We want to be able to start the sale contract for a block slightly
         // in the future, so that the start time is accurately known
@@ -138,7 +134,7 @@ contract ViewlySale is DSMath, DSNote {
         fundingEndBlock = add(fundingStartBlock, blockNumDuration);
 
         // calculate tokenExchangeRate
-        uint128 maxTokensForSale = wmul(wsub(1, reservedAllocation), tokenCreationCap);
+        uint128 maxTokensForSale = wmul(wsub(1 ether, reservedAllocation), tokenCreationCap);
         tokenExchangeRate = wmul(wdiv(maxTokensForSale, usdSaleCap), ethUsdPrice);
         //assert(wmul(wdiv(maxTokensForSale, tokenExchangeRate), ethUsdPrice) == usdSaleCap);
     }
@@ -147,7 +143,7 @@ contract ViewlySale is DSMath, DSNote {
     // then close the sale state (State.Done)
     function finalizeSale()
         isRunning
-        onlyBy(maintainer)
+        auth
         note
     {
         assert(block.number > fundingEndBlock);
@@ -171,34 +167,10 @@ contract ViewlySale is DSMath, DSNote {
         return reservedSupply;
     }
 
-    // anyone can call this function to drain the contract
-    // and forward funds into secure multisig wallet
-    function secureETH() note returns(bool) {
-        assert(this.balance > 0);
-        return multisigAddr.send(this.balance);
-    }
-
-    function nextState()
-        onlyBy(maintainer)
-        note
-        returns(bool)
-    {
+    function nextState() auth note returns(bool) {
         // we can only iterate trough states once
         if (state == State.Done) return false;
         state = State(uint(state) + 1);
-        return true;
-    }
-
-    // Side effect of this call is that in finalizeSale(), new maintainer's
-    // address will be used as a temporary store of reservedTokens.
-    // This shouldn't be a problem, since the tokens are transferred to the
-    // multisig account atomically.
-    function changeMaintainer(address maintainer_)
-        onlyBy(maintainer)
-        note
-        returns(bool)
-    {
-        maintainer = maintainer_;
         return true;
     }
 
@@ -206,7 +178,7 @@ contract ViewlySale is DSMath, DSNote {
         return VIEW.balanceOf(address_);
     }
 
-    function totalSupply() constant returns(uint256) {
+    function totalSupply() returns(uint256) {
         uint256 supply = VIEW.totalSupply();
         if (state == State.Running) {
             return add(supply, calcReservedSupply());
@@ -214,11 +186,16 @@ contract ViewlySale is DSMath, DSNote {
         return supply;
     }
 
-    // if something goes horribly wrong, freeze the sale
-    function freeze() isRunning onlyBy(maintainer) {
-        VIEW.stop();
+    // anyone can call this function to drain the contract
+    // and forward funds into secure multisig wallet
+    function secureETH() note returns(bool) {
+        assert(this.balance > 0);
+        return multisigAddr.send(this.balance);
     }
 
+    // ---------------
+    // CLAIM FUNCTIONS
+    // ---------------
 
     // Allow token holders to register their Viewly public key.
     // This operation destroys VIEW tokens on Ethereum.
@@ -251,6 +228,24 @@ contract ViewlySale is DSMath, DSNote {
         address addr = reverseViewlyClaims[viewlyChainAddr];
         assert(addr != 0x0);
         return viewlyClaims[addr].amount;
+    }
+
+
+    // ---------------
+    // ADMIN FUNCTIONS
+    // ---------------
+
+    // if something goes horribly wrong, freeze the token
+    function freeze() isRunning auth {
+        VIEW.stop();
+    }
+
+    // Side effect of this call is that in finalizeSale(), new maintainer's
+    // address will be used as a temporary store of reservedTokens.
+    // This shouldn't be a problem, since the tokens are transferred to the
+    // multisig account atomically.
+    function changeMaintainer(address maintainer) auth note {
+        return super.setOwner(maintainer);
     }
 
 }
