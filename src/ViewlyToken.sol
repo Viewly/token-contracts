@@ -8,8 +8,9 @@ pragma solidity ^0.4.11;
 
 import "./math.sol";
 import "./token.sol";
+import "./note.sol";
 
-contract ViewlySale is DSMath {
+contract ViewlySale is DSMath, DSNote {
 
     // crowdsale owner
     address public maintainer;
@@ -26,6 +27,7 @@ contract ViewlySale is DSMath {
     uint public constant saleDurationHours = 3 * 24;  // 3 days
 
     // variables calculated on sale start
+    uint128 public constant usdSaleCap = 50000000;  // $50M
     uint128 public tokenExchangeRate;  // eg. 1000 VIEW for 1 ETH
     uint256 public fundingStartBlock;  // startSale() block
     uint256 public fundingEndBlock;    // fundingStartBlock + N days
@@ -47,6 +49,15 @@ contract ViewlySale is DSMath {
     mapping (address => Claim) public viewlyClaims;
     mapping (bytes32 => address) public reverseViewlyClaims;
 
+    // mapping (address => bytes32[]) public foo;
+
+    // each viewly address can get coins from multiple ETH addresses,
+    // or same address multiple times
+    // bytes32 => []Claim
+    // bytes32 => address => Claim  :: here we increment deposits in 1:1 relationships
+    // each ETH address can reference multiple viewly addresses
+    // address => []bytes32
+
 
     event Debug(uint256 msg);
 
@@ -63,13 +74,6 @@ contract ViewlySale is DSMath {
         assert(VIEW.totalSupply() == 0);
     }
 
-    // fallback function
-    // triggered when people send ETH directly to this contract
-    function () payable {
-        issueTokens();
-    }
-
-
     modifier onlyBy(address _acc) {
         if (_acc != msg.sender) throw;
         _;
@@ -79,6 +83,13 @@ contract ViewlySale is DSMath {
         if (state != State.Running) throw;
         _;
     }
+
+    // fallback function
+    // triggered when people send ETH directly to this contract
+    function () payable {
+        issueTokens();
+    }
+
 
     function issueTokens() isRunning payable {
         assert(block.number >= fundingStartBlock);
@@ -104,9 +115,10 @@ contract ViewlySale is DSMath {
 
     function startSale(
         uint256 blockFutureOffset,
-        uint ethUsdPrice
+        uint128 ethUsdPrice
     )
     onlyBy(maintainer)
+    note
     {
         // sanity checks
         assert(state == State.Pending);
@@ -126,7 +138,9 @@ contract ViewlySale is DSMath {
         fundingEndBlock = add(fundingStartBlock, blockNumDuration);
 
         // calculate tokenExchangeRate
-
+        uint128 maxTokensForSale = wmul(wsub(1, reservedAllocation), tokenCreationCap);
+        tokenExchangeRate = wmul(wdiv(maxTokensForSale, usdSaleCap), ethUsdPrice);
+        //assert(wmul(wdiv(maxTokensForSale, tokenExchangeRate), ethUsdPrice) == usdSaleCap);
     }
 
     // create reservedAllocation, and transfer it to the multisig wallet
@@ -134,6 +148,7 @@ contract ViewlySale is DSMath {
     function finalizeSale()
         isRunning
         onlyBy(maintainer)
+        note
     {
         assert(block.number > fundingEndBlock);
 
@@ -158,13 +173,14 @@ contract ViewlySale is DSMath {
 
     // anyone can call this function to drain the contract
     // and forward funds into secure multisig wallet
-    function secureETH() returns(bool) {
+    function secureETH() note returns(bool) {
         assert(this.balance > 0);
         return multisigAddr.send(this.balance);
     }
 
     function nextState()
         onlyBy(maintainer)
+        note
         returns(bool)
     {
         // we can only iterate trough states once
@@ -177,12 +193,30 @@ contract ViewlySale is DSMath {
     // address will be used as a temporary store of reservedTokens.
     // This shouldn't be a problem, since the tokens are transferred to the
     // multisig account atomically.
-    function changeMaintainer(address new_maintainer)
+    function changeMaintainer(address maintainer_)
         onlyBy(maintainer)
+        note
         returns(bool)
     {
-        maintainer = new_maintainer;
+        maintainer = maintainer_;
         return true;
+    }
+
+    function balanceOf(address address_) constant returns(uint256) {
+        return VIEW.balanceOf(address_);
+    }
+
+    function totalSupply() constant returns(uint256) {
+        uint256 supply = VIEW.totalSupply();
+        if (state == State.Running) {
+            return add(supply, calcReservedSupply());
+        }
+        return supply;
+    }
+
+    // if something goes horribly wrong, freeze the sale
+    function freeze() isRunning onlyBy(maintainer) {
+        VIEW.stop();
     }
 
 
@@ -190,18 +224,21 @@ contract ViewlySale is DSMath {
     // This operation destroys VIEW tokens on Ethereum.
     // Addresses registered here will be included in Viewly genesis, or
     // be claimable at the registration faucet.
-    function registerAndBurn(bytes32 viewlyChainAddr) {
+    function registerAndBurn(bytes32 viewlyChainAddr, uint256 amountToBurn) note {
         assert(state == State.Done);
         uint256 balance = VIEW.balanceOf(msg.sender);
         assert(balance > 0);
+        assert(balance > amountToBurn);
         VIEW.burn(cast(balance));
 
         // if the user already claimed an amount, add to previous entry
         Claim existingClaim = viewlyClaims[msg.sender];
         if (existingClaim.amount > 0) {
-            existingClaim.amount = add(claim.amount, balance);
-            // allow change of ViewlyAddr
-            existingClaim.viewlyAddr = viewlyChainAddr;
+            // don't allow the change of existing address to avoid possible double-issuance
+            assert(existingClaim.viewlyAddr == viewlyChainAddr);
+
+            // add to the old balance
+            existingClaim.amount = add(existingClaim.amount, balance);
             viewlyClaims[msg.sender] = existingClaim;
         } else {
             viewlyClaims[msg.sender] = Claim(viewlyChainAddr, balance);
@@ -215,4 +252,5 @@ contract ViewlySale is DSMath {
         assert(addr != 0x0);
         return viewlyClaims[addr].amount;
     }
+
 }

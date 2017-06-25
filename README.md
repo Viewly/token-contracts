@@ -14,7 +14,7 @@ We believe that such features leave the door open for abuse, and decrease the tr
 This sale contract will have no gas limit. 
 
 ### Don't clog the network
-Setting a gas limit, in combination with high transaction volume might clog the Ethereum network (see Bancor sale).
+Setting a gas limit, in combination with high transaction volume might clog the Ethereum network (see Bancor and Status).
 ![](http://i.imgur.com/dlNarkq.png)
 
 ### Targeting Sophisticated Buyers
