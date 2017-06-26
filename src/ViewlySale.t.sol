@@ -34,7 +34,8 @@ contract ViewlySaleTest is DSTest, DSMath {
     function test_startSale() {
         uint256 blockFutureOffset = 30;
         uint128 ethUsdPrice = 300;
-        sale.startSale(blockFutureOffset, ethUsdPrice);
+        uint saleDurationHours_ = 3 * 24;
+        sale.startSale(saleDurationHours_, blockFutureOffset, ethUsdPrice);
 
         // test that the calculation of block number start, end is correct
         assert(sale.fundingStartBlock() > 0);
@@ -58,7 +59,8 @@ contract ViewlySaleTest is DSTest, DSMath {
     function test_buyTokens() {
         uint256 blockFutureOffset = 0;
         uint128 ethUsdPrice = 300;
-        sale.startSale(blockFutureOffset, ethUsdPrice);
+        uint saleDurationHours_ = 3 * 24;
+        sale.startSale(saleDurationHours_, blockFutureOffset, ethUsdPrice);
 
         assert(sale.totalSupply() == 0);
         sale.buyTokens.value(1 ether)();

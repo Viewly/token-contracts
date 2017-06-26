@@ -24,13 +24,11 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     uint128 public constant tokenCreationCap = 100000000;   // 100_000_000
     uint128 public constant reservedAllocation = 0.2 ether; // 20%
 
-    // crowdsale specs
-    uint public constant saleDurationHours = 3 * 24;  // 3 days
-
     // variables calculated on sale start
     uint128 public constant usdSaleCap = 50000000;  // $50M
     uint128 public maxTokensForSale;
     uint128 public tokenExchangeRate;  // eg. 1000 VIEW for 1 ETH
+    uint public saleDurationHours;     // eg. 72 = 3 days
     uint256 public fundingStartBlock;  // startSale() block
     uint256 public fundingEndBlock;    // fundingStartBlock + N days
 
@@ -98,6 +96,8 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     // fallback function
     // triggered when people send ETH directly to this contract
+    // todo: ensure this call requires less than 3200 gas?
+    // see http://bit.ly/2tMqjhf
     function () payable {
         buyTokens();
     }
@@ -123,17 +123,25 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     }
 
+    // todo: remove this before deploying contract for real
+    function startSaleStub() auth {
+        // 1hr, 0 offset, $300 ETH
+        return startSale(1, 0, 300);
+    }
+
     function startSale(
+        uint saleDurationHours_,
         uint256 blockFutureOffset,
         uint128 ethUsdPrice
     )
         auth
         note
     {
+        state = State.Running;
+        saleDurationHours = saleDurationHours_;
         // the sale can be in Running state before its fundingStartBlock
         // We want to be able to start the sale contract for a block slightly
         // in the future, so that the start time is accurately known
-        state = State.Running;
         fundingStartBlock = add(block.number, blockFutureOffset);
 
         // calculate fundingEndBlock
