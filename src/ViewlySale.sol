@@ -3,18 +3,20 @@
 
 pragma solidity ^0.4.11;
 
-//import "ds-math/math.sol";
-//import "ds-token/token.sol";
+//import "./math.sol";
+//import "./token.sol";
+//import "./note.sol";
+//import "./auth.sol";
 
 import "ds-math/math.sol";
+import "ds-token/token.sol";
 import "ds-note/note.sol";
 import "ds-auth/auth.sol";
 
-import  {DSToken} from "ds-token/token.sol";
 
 contract ViewlySale is DSAuth, DSMath, DSNote {
 
-    // account where the crowdsale funds will be proxied to
+    // account where the crowdsale funds will be proxied to - see secureETH()
     address public constant multisigAddr = 0x0;  // todo set this
 
     // supply and allocation
@@ -23,7 +25,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     uint128 public constant reservedAllocation = 0.2 ether; // 20%
 
 
-    // crowsdale specs
+    // crowdsale specs
     uint public constant saleDurationHours = 3 * 24;  // 3 days
 
     // variables calculated on sale start
@@ -91,11 +93,11 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // fallback function
     // triggered when people send ETH directly to this contract
     function () payable {
-        issueTokens();
+        buyTokens();
     }
 
 
-    function issueTokens() isRunning payable {
+    function buyTokens() isRunning payable {
         assert(block.number >= fundingStartBlock);
         assert(block.number < fundingEndBlock);
         if (msg.value == 0) throw;
@@ -161,7 +163,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         nextState();
     }
 
-    function calcReservedSupply() constant returns(uint256) {
+    function calcReservedSupply() returns(uint256) {
         uint256 totalSupply = VIEW.totalSupply();
         uint256 supplyPct = sub(1, reservedAllocation);
         uint256 reservedSupply = mul(div(totalSupply, supplyPct), reservedAllocation);
@@ -243,10 +245,10 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     // Side effect of this call is that in finalizeSale(), new maintainer's
     // address will be used as a temporary store of reservedTokens.
-    // This shouldn't be a problem, since the tokens are transferred to the
-    // multisig account atomically.
-    function changeMaintainer(address maintainer) auth note {
-        return super.setOwner(maintainer);
-    }
+    // This shouldn't be a problem, since the tokens are transferred atomically.
+    // This method is actually not needed, since setOwner is already a public method.
+    //    function changeMaintainer(address maintainer) auth note {
+    //        return super.setOwner(maintainer);
+    //    }
 
 }

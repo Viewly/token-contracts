@@ -1,6 +1,8 @@
 pragma solidity ^0.4.11;
 
 import "ds-test/test.sol";
+import "ds-exec/exec.sol";
+
 
 import "./ViewlySale.sol";
 
@@ -23,7 +25,7 @@ contract ViewlySaleTest is DSTest, DSMath {
         assert(false);
     }
 
-    function testStartSale() {
+    function test_startSale() {
         uint256 blockFutureOffset = 30;
         uint128 ethUsdPrice = 300;
         sale.startSale(blockFutureOffset, ethUsdPrice);
@@ -41,5 +43,17 @@ contract ViewlySaleTest is DSTest, DSMath {
 
         // test that the token exchange rate is correct
         assert(wmul(wdiv(sale.maxTokensForSale(), sale.tokenExchangeRate()), ethUsdPrice) == sale.usdSaleCap());
+    }
+
+    function test_finalizeSale() {
+
+    }
+
+    function test_buyTokens() {
+
+    }
+
+    function test_calcReservedSupply() {
+
     }
 }
