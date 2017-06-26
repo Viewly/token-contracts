@@ -8,13 +8,19 @@ import "./ViewlySale.sol";
 
 contract ViewlySaleTest is DSTest, DSMath {
     ViewlySale sale;
-    DSToken token;
+//    DSToken token;
+
+    TestUser user1;
+    TestUser user2;
+
 
     function setUp() {
         sale = new ViewlySale();
         //token = new DSToken('VIEW');
         //token.setOwner(sale);
         //sale.initialize(token);
+        user1 = TestUser(sale);
+        user2 = TestUser(sale);
     }
 
     function test_basic_sanity() {
@@ -50,10 +56,50 @@ contract ViewlySaleTest is DSTest, DSMath {
     }
 
     function test_buyTokens() {
+        uint256 blockFutureOffset = 0;
+        uint128 ethUsdPrice = 300;
+        sale.startSale(blockFutureOffset, ethUsdPrice);
 
+        assert(sale.totalSupply() == 0);
+        sale.buyTokens.value(1 ether)();
+        log_named_uint('totalSupply()', sale.totalSupply());
+        assert(sale.totalSupply() > 0);
+//        user1.doBuy(1 ether);
     }
 
     function test_calcReservedSupply() {
+        sale.calcReservedSupply();
+    }
 
+    function test_freeze() {
+        sale.freeze();
+//        assert(sale.VIEW.stopped());
+    }
+
+    function testFail_secureETH() {
+        sale.secureETH();
+    }
+
+    function test_secureETH() {
+        // deposit some funds into contract
+//        sale.secureETH();
+    }
+}
+
+contract TestUser is DSExec {
+    ViewlySale sale;
+
+    function TestUser(ViewlySale sale_) {
+        sale = sale_;
+    }
+
+    function() payable {}
+
+    function doBuy(uint wad) {
+        sale.buyTokens.value(wad)();
+    }
+
+    function doExec(uint wad) {
+        exec(sale, wad);
     }
 }

@@ -106,9 +106,9 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         uint256 tokens = mul(msg.value, tokenExchangeRate);
 
         // check if the sale is over the cap
-        uint256 currentSupply = add(VIEW.totalSupply(), calcReservedSupply());
+        uint256 currentSupply = totalSupply();
         uint256 postSaleSupply = add(currentSupply, tokens);
-        if (tokenCreationCap < postSaleSupply) throw;
+        if (postSaleSupply < tokenCreationCap) throw;
 
         // award the tokens
         VIEW.mint(cast(tokens));
@@ -165,7 +165,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     function calcReservedSupply() returns(uint256) {
         uint256 totalSupply = VIEW.totalSupply();
-        uint256 supplyPct = sub(1, reservedAllocation);
+        uint256 supplyPct = sub(1 ether, reservedAllocation);
         uint256 reservedSupply = mul(div(totalSupply, supplyPct), reservedAllocation);
         return reservedSupply;
     }
