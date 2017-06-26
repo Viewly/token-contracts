@@ -4,7 +4,7 @@ import "ds-test/test.sol";
 
 import "./ViewlySale.sol";
 
-contract ViewlySaleTest is DSTest {
+contract ViewlySaleTest is DSTest, DSMath {
     ViewlySale sale;
     DSToken token;
 
@@ -27,5 +27,19 @@ contract ViewlySaleTest is DSTest {
         uint256 blockFutureOffset = 30;
         uint128 ethUsdPrice = 300;
         sale.startSale(blockFutureOffset, ethUsdPrice);
+
+        // test that the calculation of block number start, end is correct
+        assert(sale.fundingStartBlock() > 0);
+        assert(sale.fundingEndBlock() > 0);
+        uint256 saleDuration = sale.fundingEndBlock() - sale.fundingStartBlock();
+        uint256 supposedSaleDuration = blockFutureOffset + sale.saleDurationHours()*mul(div(60, 17), 60);
+        uint256 diff = sub(supposedSaleDuration, saleDuration);
+        log_named_uint('saleDuration', saleDuration);
+        log_named_uint('supposedSaleDuration', supposedSaleDuration);
+        log_named_uint('diff', diff);
+        assert(diff == blockFutureOffset);
+
+        // test that the token exchange rate is correct
+        assert(wmul(wdiv(sale.maxTokensForSale(), sale.tokenExchangeRate()), ethUsdPrice) == sale.usdSaleCap());
     }
 }

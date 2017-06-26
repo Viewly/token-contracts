@@ -28,6 +28,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     // variables calculated on sale start
     uint128 public constant usdSaleCap = 50000000;  // $50M
+    uint128 public maxTokensForSale;
     uint128 public tokenExchangeRate;  // eg. 1000 VIEW for 1 ETH
     uint256 public fundingStartBlock;  // startSale() block
     uint256 public fundingEndBlock;    // fundingStartBlock + N days
@@ -134,9 +135,9 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         fundingEndBlock = add(fundingStartBlock, blockNumDuration);
 
         // calculate tokenExchangeRate
-        uint128 maxTokensForSale = wmul(wsub(1 ether, reservedAllocation), tokenCreationCap);
+        maxTokensForSale = wmul(wsub(1 ether, reservedAllocation), tokenCreationCap);
         tokenExchangeRate = wmul(wdiv(maxTokensForSale, usdSaleCap), ethUsdPrice);
-        //assert(wmul(wdiv(maxTokensForSale, tokenExchangeRate), ethUsdPrice) == usdSaleCap);
+        //
     }
 
     // create reservedAllocation, and transfer it to the multisig wallet
@@ -236,7 +237,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // ---------------
 
     // if something goes horribly wrong, freeze the token
-    function freeze() isRunning auth {
+    function freeze() auth {
         VIEW.stop();
     }
 
