@@ -24,7 +24,6 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     uint128 public constant tokenCreationCap = 100000000;   // 100_000_000
     uint128 public constant reservedAllocation = 0.2 ether; // 20%
 
-
     // crowdsale specs
     uint public constant saleDurationHours = 3 * 24;  // 3 days
 
@@ -62,7 +61,26 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // address => []bytes32
 
 
-    event Debug(uint256 msg);
+    event LogBuy(
+        address user,
+        uint256 ethSent,
+        uint256 tokenAmount,
+        uint256 tokenSupply
+    );
+
+    event LogStartSale(
+        uint256 fundingStartBlock,
+        uint256 fundingEndBlock,
+        uint128 maxTokensForSale,
+        uint128 tokenExchangeRate,
+        uint128 ethUsdPrice
+    );
+
+    event LogEndSale(
+        uint256 reservedSupply,
+        uint256 totalSupply
+    );
+
 
 
     function ViewlySale() {
@@ -72,18 +90,6 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         assert(VIEW.owner() == address(this));
         assert(VIEW.authority() == DSAuthority(0));
     }
-
-//    function initialize(DSToken viewToken) auth note {
-//        assert(state == State.Pending);
-//
-//        // initialize the ERC-20 Token
-//        assert(viewToken.totalSupply() == 0);
-////        assert(address(viewToken) == address(0));
-//        assert(viewToken.owner() == address(this));
-//        assert(viewToken.authority() == DSAuthority(0));
-//        VIEW = viewToken;
-//
-//    }
 
     modifier isRunning() {
         if (state != State.Running) throw;
@@ -113,8 +119,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         // award the tokens
         VIEW.mint(cast(tokens));
 
-        Debug(tokens);
-        Debug(VIEW.totalSupply());
+        LogBuy(msg.sender, msg.value, tokens, postSaleSupply);
 
     }
 
@@ -139,7 +144,15 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         // calculate tokenExchangeRate
         maxTokensForSale = wmul(wsub(1 ether, reservedAllocation), tokenCreationCap);
         tokenExchangeRate = wmul(wdiv(maxTokensForSale, usdSaleCap), ethUsdPrice);
-        //
+
+        LogStartSale(
+            fundingStartBlock,
+            fundingEndBlock,
+            maxTokensForSale,
+            tokenExchangeRate,
+            ethUsdPrice
+        );
+
     }
 
     // create reservedAllocation, and transfer it to the multisig wallet
@@ -161,6 +174,11 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
         // State.Done
         nextState();
+
+        LogEndSale(
+            reservedSupply,
+            totalSupply()
+        );
     }
 
     function calcReservedSupply() returns(uint256) {
@@ -242,13 +260,5 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     function freeze() auth {
         VIEW.stop();
     }
-
-    // Side effect of this call is that in finalizeSale(), new maintainer's
-    // address will be used as a temporary store of reservedTokens.
-    // This shouldn't be a problem, since the tokens are transferred atomically.
-    // This method is actually not needed, since setOwner is already a public method.
-    //    function changeMaintainer(address maintainer) auth note {
-    //        return super.setOwner(maintainer);
-    //    }
 
 }
