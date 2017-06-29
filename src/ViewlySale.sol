@@ -22,7 +22,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // supply and allocation
     DSToken public VIEW;
     uint128 public constant tokenCreationCap = 100000000;   // 100_000_000
-    uint128 public constant reservedAllocation = 0.2 ether; // 20%
+    uint128 public constant reservedAllocation = 0.4 ether; // 40%
 
     // variables calculated on sale start
     uint128 public constant usdSaleCap = 50000000;  // $50M
@@ -48,6 +48,9 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     }
     mapping (address => Claim) public viewlyClaims;
     mapping (bytes32 => address) public reverseViewlyClaims;
+
+    mapping (address => string) public viewlyKeys;
+
 
     // mapping (address => bytes32[]) public foo;
 
@@ -78,6 +81,14 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         uint256 reservedSupply,
         uint256 totalSupply
     );
+
+    event LogRegister(
+        address user,
+        string key
+    );
+
+    event LogFreeze(uint256 blockNum);
+
 
 
 
@@ -126,7 +137,13 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // todo: remove this before deploying contract for real
     function startSaleStub() auth {
         // 1hr, 0 offset, $300 ETH
-        return startSale(1, 0, 300);
+        startSale(1, 0, 300);
+    }
+
+    // todo: remove this before deploying contract for real
+    function endSaleStub() auth {
+        fundingEndBlock = add(fundingStartBlock, 1);
+        finalizeSale();
     }
 
     function startSale(
@@ -261,12 +278,19 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
 
     // ---------------
-    // ADMIN FUNCTIONS
-    // ---------------
+    // ALTERNATE CLAIM FUNCTIONS
+    // copied from EOS
+    // --------------
+    function register(string pubKey) {
+        assert(bytes(pubKey).length <= 64);
+        viewlyKeys[msg.sender] = pubKey;
+        LogRegister(msg.sender, pubKey);
+    }
 
-    // if something goes horribly wrong, freeze the token
-    function freeze() auth {
+    // freeze the token before the snapshot
+    function freeze() auth note {
         VIEW.stop();
+        LogFreeze(block.number);
     }
 
 }

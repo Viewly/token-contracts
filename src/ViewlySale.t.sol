@@ -8,7 +8,6 @@ import "./ViewlySale.sol";
 
 contract ViewlySaleTest is DSTest, DSMath {
     ViewlySale sale;
-//    DSToken token;
 
     TestUser user1;
     TestUser user2;
@@ -16,9 +15,6 @@ contract ViewlySaleTest is DSTest, DSMath {
 
     function setUp() {
         sale = new ViewlySale();
-        //token = new DSToken('VIEW');
-        //token.setOwner(sale);
-        //sale.initialize(token);
         user1 = TestUser(sale);
         user2 = TestUser(sale);
     }
@@ -53,7 +49,13 @@ contract ViewlySaleTest is DSTest, DSMath {
     }
 
     function test_finalizeSale() {
+        sale.endSaleStub();
+    }
 
+    // paying after the sale ended should fail
+    function testFail_finalizeSale() {
+        sale.endSaleStub();
+        sale.buyTokens.value(1 ether)();
     }
 
     function test_buyTokens() {
