@@ -22,6 +22,7 @@ contract ViewlySaleRecurrent is DSAuth, DSMath, DSNote {
     // supply and allocation
     DSToken public VIEW;
     uint128 public constant tokenCreationCap = 100000000; // 100_000_000
+    uint128 public          mintMonthlyMax   = 2;         // 2% a month max
 
     // variables calculated on round start
     uint128 public roundUsdCap;         // USD cap for this round
@@ -42,6 +43,13 @@ contract ViewlySaleRecurrent is DSAuth, DSMath, DSNote {
         Done
     }
     State public state = State.Pending;
+
+    // minting history
+    struct Mintage {
+        uint amount;
+        uint timestamp;
+    }
+    Mintage[] mintHistory;
 
 
     event LogBuy(
@@ -188,7 +196,7 @@ contract ViewlySaleRecurrent is DSAuth, DSMath, DSNote {
         VIEW.mint(cast(tokens));
 
         // tally up the total round issued supply
-        roundTokenSupply = postSaleSupply;
+        roundTokenSupply = cast(postSaleSupply);
 
         LogBuy(msg.sender, msg.value, tokens, roundTokenSupply);
     }
@@ -234,7 +242,52 @@ contract ViewlySaleRecurrent is DSAuth, DSMath, DSNote {
     // RESERVED TOKENS
     // ---------------
 
+    // An arbitrary amount of reserve tokens can be minted,
+    // but no more than 2% of total supply per month.
+    // Minting is disabled during the token sale.
+    function mintReserve(uint requestedAmount) notRunning auth returns(uint toMint) {
 
-    // an arbitrary amount of tokens can be reserved,
-    // but no more than 2% of total supply per month
+        // calculate remaining monthly allowance
+        uint monthlyAllowance = sub(mintMonthlyMax(), mintedLastMonthSum());
+        assert(monthlyAllowance > 0);
+
+        // soft cap to the available monthly allowance
+        toMint = 0;
+        if (requestedAmount > monthlyAllowance) {
+            toMint = monthlyAllowance;
+        }
+
+        // don't forget about the hard cap
+        uint availableSupply = sub(tokenCreationCap, totalSupply());
+        if (toMint > availableSupply) {
+            toMint = availableSupply;
+        }
+
+        // mint the new tokens
+        VIEW.mint(cast(toMint));
+
+        // transfer minted tokens to a multisig wallet
+        uint balance = VIEW.balanceOf(msg.sender);
+        if (!VIEW.transfer(multisigAddr, balance)) throw;
+    }
+
+    // sum(x.amount for x in mintHistory if x.timestamp > last_30_days)
+    function mintedLastMonthSum() constant returns(uint sumMinted) {
+        uint monthAgo = block.timestamp - 30 days;
+
+        sumMinted = 0;
+        for(uint8 x = 0; x < mintHistory.length; x++)
+        {
+            if (mintHistory[x].timestamp < monthAgo) {
+                sumMinted += mintHistory[x].amount;
+            }
+        }
+    }
+
+    // 2% of total supply = ?
+    function mintMonthlyMax() constant returns(uint) {
+        return cast(wdiv(wmul(tokenCreationCap, mintMonthlyMax), 100));
+    }
+
+
 }

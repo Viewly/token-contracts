@@ -10,8 +10,8 @@ In our view, changing the terms of the crowdsale or the behaviour of the crowdsa
 Furthermore, this contract is *non upgradable*, and it provides no capability to *mint* new tokens, or *burn* people's tokens.
 We believe that such features leave the door open for abuse, and decrease the trustworthiness of the token.
 
-## No Gas Limit
-This sale contract will have no gas limit.
+### No Gas Limit
+This sale contract will have no `tx.gasprice` limit.
 
 ### Don't clog the network
 Setting a gas limit, in combination with high transaction volume might clog the Ethereum network (see Bancor and Status).
@@ -31,6 +31,13 @@ There is a very small overlap between our target users, and the speculators buyi
 
 For this reason, we will set up an official faucet, and fairly distribute a portion of the tokens that are held back,
 to the content creators and their fans, once our chain launches.
+
+
+# Proposed Contract :: ViewlySale
+
+## Single Funding Event
+`ViewlySale` contract is designed for a single and large crowdfunding event, with guaranteed
+fixed reserved supply.
 
 ## Fair and Predictable Reserves Allocation
 As an example, lets look at BAT's sale contract. In BAT's case, the reserved tokens are allocated before the sale.
@@ -62,8 +69,7 @@ This means, that we cannot know in advance what % of the tokens has been held ba
 ```
 
 
-In the Viewly contract however, we allocate the reserved tokens **after** the crowdsale is complete.
-This way we can guarantee that the reserved allocation will be exactly the pre-set fixed %, regardless of how many tokens are sold.
+In the Viewly contract however, we allocate the reserved **after** the crowdsale window ends. This way we can guarantee that the reserved allocation will be exactly the pre-set fixed %, regardless of how many tokens are sold.
 
 We perform the allocation in `finalizeSale()`, and we guarantee that exactly 20% of the token supply will be reserved:
 ```solidity
@@ -81,12 +87,12 @@ function calcReservedSupply() constant returns(uint256) {
 
 # Alternate Contract :: ViewlySaleRecurrent
 
-### Multiple Funding Events
+## Multiple Funding Events
 Should we aim for a more traditional funding model, with a pre-sale (series A), followed by one or two funding events as our project progresses, the `ViewlySaleRecurrent` contract should be used.
 
 Aside from the ability to have multiple sale events from the single contract, this proposal also changes the behaviour of the reserved supply.
 
-### Reserved Supply and Vesting
+## Reserved Supply and Vesting
 Reserved supply is to be used to incentivize the development team, fund the bounty program as well as the influencer outreach.
 
 The creation of reserved supply has been decoupled from the sale event. `ViewlySaleRecurrent` contract is now capable of issuing reserved supply on demand, however a rate limit
