@@ -1,9 +1,9 @@
 ## Introduction
-This document has been created to explain the smart contract in **Plain English**, so that people whom aren't developers can understand 
+This document has been created to explain the smart contract in **Plain English**, so that people whom aren't developers can understand
 the mechanics of the Viewly Crowdsale. We will also use this opportunity to clarify our intentions, and explain why we made certain decisions.
 
 ## Code is law
-We believe that the crowdsale contract should be immutable. 
+We believe that the crowdsale contract should be immutable.
 In our view, changing the terms of the crowdsale or the behaviour of the crowdsale contract after the crowdsale has started is shady, if not outright fraudulent.
 
 ### No backdoors
@@ -11,7 +11,7 @@ Furthermore, this contract is *non upgradable*, and it provides no capability to
 We believe that such features leave the door open for abuse, and decrease the trustworthiness of the token.
 
 ## No Gas Limit
-This sale contract will have no gas limit. 
+This sale contract will have no gas limit.
 
 ### Don't clog the network
 Setting a gas limit, in combination with high transaction volume might clog the Ethereum network (see Bancor and Status).
@@ -33,7 +33,7 @@ For this reason, we will set up an official faucet, and fairly distribute a port
 to the content creators and their fans, once our chain launches.
 
 ## Fair and Predictable Reserves Allocation
-As an example, lets look at BAT's sale contract. In BAT's case, the reserved tokens are allocated before the sale. 
+As an example, lets look at BAT's sale contract. In BAT's case, the reserved tokens are allocated before the sale.
 This means, that we cannot know in advance what % of the tokens has been held back. It could be anywhere between 30% and 75%.
 ```solidity
     uint256 public constant batFund = 500 * (10**6) * 10**decimals;   // 500m BAT reserved for Brave Intl use
@@ -77,3 +77,18 @@ function calcReservedSupply() constant returns(uint256) {
     return reservedSupply;
 }
 ```
+
+
+# Alternate Contract :: ViewlySaleRecurrent
+
+### Multiple Funding Events
+Should we aim for a more traditional funding model, with a pre-sale (series A), followed by one or two funding events as our project progresses, the `ViewlySaleRecurrent` contract should be used.
+
+Aside from the ability to have multiple sale events from the single contract, this proposal also changes the behaviour of the reserved supply.
+
+### Reserved Supply and Vesting
+Reserved supply is to be used to incentivize the development team, fund the bounty program as well as the influencer outreach.
+
+The creation of reserved supply has been decoupled from the sale event. `ViewlySaleRecurrent` contract is now capable of issuing reserved supply on demand, however a rate limit
+of 2% of total token supply per month is imposed by the contract.
+This *vesting schedule* creates artificial scarcity in the supply of tokens available to Viewly, which forces us to be more prudent in regards to our spending, and incentivizes long-term thinking.
