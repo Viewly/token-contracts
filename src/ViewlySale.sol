@@ -247,7 +247,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // This operation destroys VIEW tokens on Ethereum.
     // Addresses registered here will be included in Viewly genesis, or
     // be claimable at the registration faucet.
-    function registerAndBurn(bytes32 viewlyChainAddr, uint256 amountToBurn) note {
+    function registerAndBurn(bytes32 viewlyAddr, uint256 amountToBurn) note {
         assert(state == State.Done);
         uint256 balance = VIEW.balanceOf(msg.sender);
         assert(balance > 0);
@@ -258,20 +258,20 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         Claim existingClaim = viewlyClaims[msg.sender];
         if (existingClaim.amount > 0) {
             // don't allow the change of existing address to avoid possible double-issuance
-            assert(existingClaim.viewlyAddr == viewlyChainAddr);
+            assert(existingClaim.viewlyAddr == viewlyAddr);
 
             // add to the old balance
             existingClaim.amount = add(existingClaim.amount, balance);
             viewlyClaims[msg.sender] = existingClaim;
         } else {
-            viewlyClaims[msg.sender] = Claim(viewlyChainAddr, balance);
-            reverseViewlyClaims[viewlyChainAddr] = msg.sender;
+            viewlyClaims[msg.sender] = Claim(viewlyAddr, balance);
+            reverseViewlyClaims[viewlyAddr] = msg.sender;
         }
 
     }
 
-    function balanceOfViewlyAddr(bytes32 viewlyChainAddr) constant returns(uint256) {
-        address addr = reverseViewlyClaims[viewlyChainAddr];
+    function balanceOfViewlyAddr(bytes32 viewlyAddr) constant returns(uint256) {
+        address addr = reverseViewlyClaims[viewlyAddr];
         assert(addr != 0x0);
         return viewlyClaims[addr].amount;
     }

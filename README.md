@@ -33,7 +33,7 @@ For this reason, we will set up an official faucet, and fairly distribute a port
 to the content creators and their fans, once our chain launches.
 
 ## Convertibility
-Viewly ERC-20 tokens issued on Ethereum will be convertible into native Viewly tokens when our network launches (in a 1:1 ratio). This is achieved trough the `claim()` function in `ViewlySale` contract. Calling this contract will register your native Viewly address, and burn the tokens in the process.
+Viewly ERC-20 tokens issued on Ethereum will be convertible into native Viewly tokens when our network launches (in a 1:1 ratio). This is achieved trough the `registerAndBurn(bytes32 viewlyAddr, uint amount)` function in `ViewlySale` contract. Calling this contract will register your native Viewly address, and burn the tokens in the process.
 
 ### One to many mapping
 In the future version of this contract, it will be possible to register any number of Viewly addresses, as well as burn arbitrary amounts. This would allow users to split their ERC-20 tokens into multiple Viewly accounts, as well as provide exchanges with an easy way to convert the tokens for their clients.
