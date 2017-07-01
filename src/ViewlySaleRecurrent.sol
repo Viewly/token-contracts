@@ -245,7 +245,11 @@ contract ViewlySaleRecurrent is DSAuth, DSMath, DSNote {
     // An arbitrary amount of reserve tokens can be minted,
     // but no more than 2% of total supply per month.
     // Minting is disabled during the token sale.
-    function mintReserve(uint requestedAmount) notRunning auth returns(uint toMint) {
+    function mintReserve(uint requestedAmount)
+        notRunning
+        auth
+        returns(uint toMint)
+    {
 
         // calculate remaining monthly allowance
         uint monthlyAllowance = sub(mintMonthlyMax(), mintedLastMonthSum());
