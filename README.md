@@ -75,7 +75,7 @@ This means, that we cannot know in advance what % of the tokens has been held ba
 ```
 
 
-In the Viewly contract however, we allocate the reserved **after** the crowdsale window ends. This way we can guarantee that the reserved allocation will be exactly the pre-set fixed %, regardless of how many tokens are sold.
+In the Viewly contract however, we allocate the reserves **after** the crowdsale window ends. This way we can guarantee that the reserved allocation will be exactly the pre-set fixed %, regardless of how many tokens are sold.
 
 We perform the allocation in `finalizeSale()`, and we guarantee that exactly 20% of the token supply will be reserved:
 ```solidity
@@ -96,7 +96,17 @@ function calcReservedSupply() constant returns(uint256) {
 ## Multiple Funding Events
 Should we aim for a more traditional funding model, with a pre-sale (series A), followed by one or two funding events as our project progresses, the `ViewlySaleRecurrent` contract should be used.
 
-Aside from the ability to have multiple sale events from the single contract, this proposal also changes the behaviour of the reserved supply.
+A simple state machine dictates the correct behavior of the `ViewlySale` contract during different phases of the sale. In `ViewlySaleRecurrent`, there can be multiple sale events, as long as the hard cap of 100M tokens is not reached. While the sale is ongoing, it is also not possible to issue reserved supply.
+```
+enum State {
+    Pending,
+    Running,
+    Done
+}
+State public state = State.Pending;
+```
+
+Aside from the ability to have multiple sale events from the single contract, this proposal also changes the behavior of the reserved supply.
 
 ## Reserved Supply and Vesting
 Reserved supply is to be used to incentivize the development team, fund the bounty program as well as the influencer outreach.

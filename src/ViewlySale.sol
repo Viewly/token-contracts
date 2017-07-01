@@ -247,6 +247,10 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // This operation destroys VIEW tokens on Ethereum.
     // Addresses registered here will be included in Viewly genesis, or
     // be claimable at the registration faucet.
+    //
+    // WARN: This contract is not safe to port to ViewlySaleRecurrent as is,
+    // as it would allow for hard cap of 100M to be surpassed due to the
+    // burning of the coins.
     function registerAndBurn(bytes32 viewlyAddr, uint256 amountToBurn) note {
         assert(state == State.Done);
         uint256 balance = VIEW.balanceOf(msg.sender);
