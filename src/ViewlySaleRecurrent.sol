@@ -252,7 +252,7 @@ contract ViewlySaleRecurrent is DSAuth, DSMath, DSNote {
     {
 
         // calculate remaining monthly allowance
-        uint monthlyAllowance = sub(mintMonthlyMax(), mintedLastMonthSum());
+        uint monthlyAllowance = sub(mintMonthlyTokens(), mintedLastMonthSum());
         assert(monthlyAllowance > 0);
 
         // soft cap to the available monthly allowance
@@ -289,7 +289,7 @@ contract ViewlySaleRecurrent is DSAuth, DSMath, DSNote {
     }
 
     // 2% of total supply = ?
-    function mintMonthlyMax() constant returns(uint) {
+    function mintMonthlyTokens() constant returns(uint) {
         return cast(wdiv(wmul(tokenCreationCap, mintMonthlyMax), 100));
     }
 
