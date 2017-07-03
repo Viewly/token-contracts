@@ -114,3 +114,8 @@ Reserved supply is to be used to incentivize the development team, fund the boun
 The creation of reserved supply has been decoupled from the sale event. `ViewlySaleRecurrent` contract is now capable of issuing reserved supply on demand, however a rate limit
 of 2% of total token supply per month is imposed by the contract.
 This *vesting schedule* creates artificial scarcity in the supply of tokens available to Viewly, which forces us to be more prudent in regards to our spending, and incentivizes long-term thinking.
+
+# Capped Auction Contract :: ViewlyAuctionRecurrent
+Capped auction is a buyer-friendly alternative to the fixed price sale. Combined with the fixed USD and token cap for each auction, we can curb the irrational exuberance, and aim for a more organic growth.
+
+This execution type will also improve the health of our project by further aligning our incentives for the long-term success.
