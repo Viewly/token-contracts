@@ -57,6 +57,7 @@ contract ViewlyAuctionRecurrentTest is DSTest, DSMath {
         uint blockFutureOffset_ = 30; // same as startSaleStub()
         assert(sale.roundStartBlock() > 0);
         assert(sale.roundEndBlock() > 0);
+        assert(sale.roundEndBlock() > sale.roundStartBlock());
         uint256 saleDuration = sale.roundEndBlock() - sale.roundStartBlock();
         uint256 supposedSaleDuration = blockFutureOffset_ + sale.roundDurationHours()*mul(div(60, 17), 60);
         uint256 diff = sub(supposedSaleDuration, saleDuration);
@@ -72,8 +73,8 @@ contract ViewlyAuctionRecurrentTest is DSTest, DSMath {
 
         assert(sale.totalSupply() == 0);
         sale.buyTokens.value(1 ether)();
-        // assert(sale.mapEthDeposits[1][msg.sender] == 1 ether);
-        // assert(sale.mapEthSums[1] == 1 ether);
+        // assert(sale.mapEthDeposits(1)(msg.sender) == 1 ether);
+        assert(sale.mapEthSums(1) == 1 ether);
     }
 
     function test_freeze() {
