@@ -302,6 +302,9 @@ contract ViewlyAuctionRecurrent is DSAuth, DSMath, DSNote {
         // transfer minted tokens to a multisig wallet
         uint balance = VIEW.balanceOf(msg.sender);
         if (!VIEW.transfer(multisigAddr, balance)) throw;
+
+        // log mintage
+        mintHistory.push(Mintage(toMint, block.timestamp));
     }
 
     // sum(x.amount for x in mintHistory if x.timestamp > last_30_days)
