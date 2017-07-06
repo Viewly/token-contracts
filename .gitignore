@@ -1,2 +1,8 @@
-/out
 .idea/
+.ropeproject/
+__pycache__/
+
+/out
+
+/build
+.cache/
