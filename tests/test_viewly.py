@@ -1,3 +1,5 @@
+# The MIT License (MIT)
+# Copyright (c) 2017 Viewly (https://view.ly)
 import pytest
 
 from web3.contract import Contract
@@ -9,7 +11,7 @@ from ethereum.tester import TransactionFailed
 def viewly_sale(chain) -> Contract:
     """ A blank sale. """
     TokenFactory = chain.get_contract_factory('ViewlySale')
-    deploy_txn_hash = TokenFactory.deploy()  # arguments=[x, y, z]
+    deploy_txn_hash = TokenFactory.deploy(args=[True])  # isTestable_=True
     contract_address = chain.wait.for_contract_address(deploy_txn_hash)
     return TokenFactory(address=contract_address)
 
@@ -55,6 +57,7 @@ def running_round_one(viewly_sale: Contract) -> Contract:
     """
     return step_start_sale(viewly_sale)
 
+
 def step_make_purchases(sale: Contract,
                         web3,
                         buyers: list,
@@ -73,6 +76,8 @@ def step_make_purchases(sale: Contract,
             "gas": 250000,
         })
 
+    return sale
+
 @pytest.fixture()
 def running_round_one_buyers(running_round_one: Contract,
                              web3, customer, customer2) -> Contract:
@@ -84,6 +89,19 @@ def running_round_one_buyers(running_round_one: Contract,
     buyers = [customer, customer2]
     return step_make_purchases(running_round_one, web3, buyers)
 
+
+
+def step_finalize_sale(sale: Contract) -> Contract:
+    assert is_running(sale)
+
+    # make the sale close-able
+    sale.transact().collapseBlockTimes()
+    sale.transact().finalizeSale()
+
+    assert is_not_running(sale)
+
+    return sale
+
 @pytest.fixture()
 def ending_round_one(running_round_one_buyers: Contract) -> Contract:
     """
@@ -92,7 +110,7 @@ def ending_round_one(running_round_one_buyers: Contract) -> Contract:
     with dummy buyers,
     with first round ended.
     """
-    pass
+    return step_finalize_sale(running_round_one_buyers)
 
 @pytest.fixture
 def beneficiary(accounts) -> str:
@@ -237,3 +255,24 @@ def is_running(sale):
 def is_not_running(sale):
     assert sale.call().state() != 1
     return True
+
+
+# ViewlySale.isTesting
+# --------------------
+def test_testing_methods_unavailable(chain):
+    """ Testing helpers should not be callable
+    in a production like deployment. """
+
+    # production like contract
+    TokenFactory = chain.get_contract_factory('ViewlySale')
+    deploy_txn_hash = TokenFactory.deploy(args=[False])  # isTestable_=False
+    contract_address = chain.wait.for_contract_address(deploy_txn_hash)
+    sale = TokenFactory(address=contract_address)
+
+    # initialize the sale
+    sale = step_start_sale(sale)
+    assert is_running(sale)
+
+    # calling a test protected method should fail
+    with pytest.raises(TransactionFailed):
+        sale.transact().collapseBlockTimes()
