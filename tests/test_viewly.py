@@ -24,7 +24,7 @@ def running_round_one(viewly_sale) -> Contract:
         round_sale_duration,
         block_future_offset,
         round_token_cap,
-        round_eth_cap,
+        to_wei(round_eth_cap, 'ether'),
     )
 
     # state.Running
@@ -37,6 +37,9 @@ def running_round_one(viewly_sale) -> Contract:
     roundTokenCap = viewly_sale.call().roundTokenCap()
     assert viewly_sale.call().mapTokenSums(1) == roundTokenCap
     assert viewly_sale.call().totalSupply() == roundTokenCap
+
+    # check that the eth Cap is correct
+    assert viewly_sale.call().roundEthCap() == to_wei(round_eth_cap, "ether")
 
     return viewly_sale
 
@@ -54,27 +57,31 @@ def beneficiary(accounts) -> str:
     return accounts[3]
 
 def test_init(viewly_sale):
+    sale = viewly_sale
+
     # sanity check, values should be initalized to 0
-    assert viewly_sale.call().roundNumber() == 0
+    assert sale.call().roundNumber() == 0
 
     # initial supply should be 0
-    assert viewly_sale.call().totalSupply() == 0
+    assert sale.call().totalSupply() == 0
 
     # state.Pending
-    assert viewly_sale.call().state() == 0
+    assert sale.call().state() == 0
 
     # test that the beneficiary account is correct
     addr = '0x0000000000000000000000000000000000000000'
-    assert viewly_sale.call().multisigAddr() == addr
+    assert sale.call().multisigAddr() == addr
 
 
 def test_buyTokensFail(viewly_sale, web3, customer):
+    sale = viewly_sale
+
     # sale is not running, so the purchase should fail
     is_not_running(viewly_sale)
     try:
         web3.eth.sendTransaction({
             "from": customer,
-            "to": viewly_sale.address,
+            "to": sale.address,
             "value": to_wei(10, "ether"),
             "gas": 250000,
         })
@@ -83,14 +90,47 @@ def test_buyTokensFail(viewly_sale, web3, customer):
     except TransactionFailed:
         pass
 
+def test_buyTokensFail2(running_round_one, web3, customer):
+    sale = running_round_one
+    # is_running(sale)
+
+    # user tries to buy more than available (ETH Cap reached)
+    msg_value = to_wei(100000, "ether")
+    assert sale.call().roundEthCap() < msg_value
+    with pytest.raises(TransactionFailed):
+        web3.eth.sendTransaction({
+            "from": customer,
+            "to": sale.address,
+            "value": msg_value,
+            "gas": 250000,
+        })
+
 def test_buyTokens(running_round_one, web3, customer):
-    # buy some tokens
+    sale = running_round_one
+    roundNumber = sale.call().roundNumber()
+
+    # buying some tokens should work without err
+    msg_value = to_wei(10, "ether")
     web3.eth.sendTransaction({
         "from": customer,
-        "to": running_round_one.address,
-        "value": to_wei(10, "ether"),
+        "to": sale.address,
+        "value": msg_value,
         "gas": 250000,
     })
+
+    # balances should update correctly
+    user_deposit = sale.call().mapEthDeposits(roundNumber, customer)
+    assert user_deposit == msg_value
+    assert sale.call().mapEthSums(roundNumber) == msg_value
+
+    # the event should have triggered
+    events = sale.pastEvents("LogBuy").get()
+    assert len(events) == 1
+    e = events[0]["args"]
+    assert e["roundNumber"] == roundNumber
+    assert e["buyer"] == customer
+    assert e["ethSent"] == msg_value
+
 
 def test_startSale(running_round_one, web3):
     pass

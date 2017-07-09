@@ -58,7 +58,7 @@ contract ViewlyAuctionRecurrent is DSAuth, DSMath, DSNote {
 
     event LogBuy(
         uint8 roundNumber,
-        address user,
+        address buyer,
         uint256 ethSent
     );
 
@@ -128,7 +128,9 @@ contract ViewlyAuctionRecurrent is DSAuth, DSMath, DSNote {
         auth
         note
     {
+        // this MUST be to_wei(x, 'ether')
         roundEthCap = roundEthCap_;
+
         roundTokenCap = roundTokenCap_;
         roundDurationHours = roundDurationHours_;
 
