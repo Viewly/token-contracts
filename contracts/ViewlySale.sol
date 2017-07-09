@@ -9,7 +9,7 @@ import "./lib/note.sol";
 import "./lib/auth.sol";
 
 
-contract ViewlyAuctionRecurrent is DSAuth, DSMath, DSNote {
+contract ViewlySale is DSAuth, DSMath, DSNote {
 
     // account where the crowdsale funds will be proxied to - see secureETH()
     address public constant multisigAddr = 0x0;  // todo set this
@@ -85,7 +85,7 @@ contract ViewlyAuctionRecurrent is DSAuth, DSMath, DSNote {
     );
 
 
-    function ViewlyAuctionRecurrent() {
+    function ViewlySale() {
         // initialize the ERC-20 Token
         // is this a bad practice?
         // should the VIEW token be deployed by the
