@@ -21,6 +21,9 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // This address should be the DSMultisig80 contract address.
     // Ideally, withdrawals from this address require a quorum agreement from
     // the core team, legal and/or 3rd party escrows.
+    //
+    // Note: multisigAddr MUST implement a mechanism to transfer ERC-20 tokens,
+    // otherwise all VIEW tokens sent to it will be permanently lost.
     address public constant multisigAddr = 0x0;  // todo set this
 
     // supply and allocation

@@ -144,7 +144,7 @@ def test_init(viewly_sale):
 
 
 def test_round_one(ending_round_one):
-    # the magic happens here ^^
+    # testing happens here ^^
     pass
 
 
@@ -233,9 +233,12 @@ def test_buyTokens(running_round_one, web3, customer, customer2):
     assert user_deposit == 2 * msg_value
 
 
+def test_totalEth(running_round_one_buyers):
+    sale = running_round_one_buyers
 
-def test_finalizeSale(viewly_sale):
-    pass
+    # by default, running_round_one_buyers will make 2x 10 ETH deposits
+    assert sale.call().totalEth() == to_wei(10*2, 'ether')
+
 
 def test_totalSupply(viewly_sale):
     # start a round
