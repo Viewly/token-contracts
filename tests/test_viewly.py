@@ -7,6 +7,9 @@ from eth_utils import to_wei
 
 from ethereum.tester import TransactionFailed
 
+multisig_addr = '0x0000000000000000000000000000000000000000'
+
+
 @pytest.fixture()
 def viewly_sale(chain) -> Contract:
     """ A blank sale. """
@@ -137,8 +140,7 @@ def test_init(viewly_sale):
     assert sale.call().state() == 0
 
     # test that the beneficiary account is correct
-    addr = '0x0000000000000000000000000000000000000000'
-    assert sale.call().multisigAddr() == addr
+    assert sale.call().multisigAddr() == multisig_addr
 
 
 def test_round_one(ending_round_one):

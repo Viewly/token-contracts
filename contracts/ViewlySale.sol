@@ -15,7 +15,12 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // live contract SHOULD have this value set to false
     bool isTestable = false;
 
-    // account where the crowdsale funds will be proxied to - see secureETH()
+    // Where should secureETH() proxy the ETH raised?
+    // Where should mintReserve() send the bounty/team vesting tokens?
+    //
+    // This address should be the DSMultisig80 contract address.
+    // Ideally, withdrawals from this address require a quorum agreement from
+    // the core team, legal and/or 3rd party escrows.
     address public constant multisigAddr = 0x0;  // todo set this
 
     // supply and allocation
@@ -372,7 +377,6 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         isRunning
         auth
     {
-
         roundEndBlock = add(roundStartBlock, 1);
     }
 
