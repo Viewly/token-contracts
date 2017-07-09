@@ -87,6 +87,9 @@ contract ViewlyAuctionRecurrent is DSAuth, DSMath, DSNote {
 
     function ViewlyAuctionRecurrent() {
         // initialize the ERC-20 Token
+        // is this a bad practice?
+        // should the VIEW token be deployed by the
+        // maintainer, and passed as address here?
         VIEW = new DSToken("VIEW");
         assert(VIEW.totalSupply() == 0);
         assert(VIEW.owner() == address(this));
@@ -200,16 +203,20 @@ contract ViewlyAuctionRecurrent is DSAuth, DSMath, DSNote {
     // tokens issued from reserves + tokens issued in sale rounds
     function totalSupply() returns(uint256) {
         uint sum = 0;
-        for (uint8 x = 0; x < roundNumber; x++) {
+        for (uint8 x = 0; x <= roundNumber; x++) {
             sum += mapTokenSums[x];
         }
         return add(mintedTotalSum(), sum);
     }
 
+    function erc20Supply() constant returns(uint) {
+        return VIEW.totalSupply();
+    }
+
     // all ETH raised trough rounds
     function totalEth() returns(uint256) {
         uint sum = 0;
-        for (uint8 x = 0; x < roundNumber; x++) {
+        for (uint8 x = 0; x <= roundNumber; x++) {
             sum += mapEthSums[x];
         }
         return sum;
@@ -312,6 +319,7 @@ contract ViewlyAuctionRecurrent is DSAuth, DSMath, DSNote {
         uint monthAgo = block.timestamp - 30 days;
 
         sumMinted = 0;
+        // todo: test should it be <= here?
         for(uint8 x = 0; x < mintHistory.length; x++)
         {
             if (mintHistory[x].timestamp < monthAgo) {
@@ -323,6 +331,7 @@ contract ViewlyAuctionRecurrent is DSAuth, DSMath, DSNote {
     // sum(x.amount for x in mintHistory if x.timestamp > last_30_days)
     function mintedTotalSum() constant returns(uint sumMinted) {
         sumMinted = 0;
+        // todo: test should it be <= here?
         for(uint8 x = 0; x < mintHistory.length; x++)
         {
             sumMinted += mintHistory[x].amount;
