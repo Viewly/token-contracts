@@ -337,7 +337,6 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         uint monthAgo = block.timestamp - 30 days;
 
         sumMinted = 0;
-        // todo: test should it be <= here?
         for(uint8 x = 0; x < mintHistory.length; x++)
         {
             if (mintHistory[x].timestamp < monthAgo) {
@@ -349,7 +348,6 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // sum(x.amount for x in mintHistory if x.timestamp > last_30_days)
     function mintedTotalSum() constant returns(uint sumMinted) {
         sumMinted = 0;
-        // todo: test should it be <= here?
         for(uint8 x = 0; x < mintHistory.length; x++)
         {
             sumMinted += mintHistory[x].amount;

@@ -19,7 +19,7 @@ def viewly_sale(chain) -> Contract:
     return TokenFactory(address=contract_address)
 
 
-def step_start_sale(sale: Contract) -> Contract:
+def step_start_sale(sale: Contract, round_num = 1) -> Contract:
     assert is_not_running(sale)
 
     # initialize the sale
@@ -39,12 +39,16 @@ def step_start_sale(sale: Contract) -> Contract:
     assert is_running(sale)
 
     # check that values were initialized properly
-    assert sale.call().roundNumber() == 1
+    assert sale.call().roundNumber() == round_num
 
     # check that the funds were allocated correctly
     roundTokenCap = sale.call().roundTokenCap()
-    assert sale.call().mapTokenSums(1) == roundTokenCap
-    assert sale.call().totalSupply() == roundTokenCap
+    assert sale.call().mapTokenSums(round_num) == roundTokenCap
+    if round_num == 1:
+        assert sale.call().totalSupply() == roundTokenCap
+    else:
+        # if this is a second round, we should have more supply now
+        assert sale.call().totalSupply() > roundTokenCap
 
     # check that the eth Cap is correct
     assert sale.call().roundEthCap() == to_wei(round_eth_cap, "ether")
@@ -144,8 +148,27 @@ def test_init(viewly_sale):
 
 
 def test_round_one(ending_round_one):
-    # testing happens here ^^
+    # magic happens here ^^
     pass
+
+def test_round_two(ending_round_one, web3, customer, customer2):
+    """ Test if additional rounds tally up correctly. """
+    sale = ending_round_one
+    sale = step_start_sale(sale, round_num=2)
+    buyers = [customer, customer2]
+    sale = step_make_purchases(sale, web3, buyers)
+    sale = step_finalize_sale(sale)
+
+    # manual assertions based on hardcoded params in
+    # step_start_sale and step_make_purchases
+    assert sale.call().totalSupply() == 2 * 18_000_000
+    assert sale.call().totalEth() == to_wei(40, 'ether')
+    assert sale.call().mapEthDeposits(1, customer) == to_wei(10, 'ether')
+    assert sale.call().mapEthDeposits(2, customer) == to_wei(10, 'ether')
+    assert sale.call().mapEthSums(1) == to_wei(20, 'ether')
+    assert sale.call().mapEthSums(2) == to_wei(20, 'ether')
+    assert sale.call().mapTokenSums(1) == 18_000_000
+    assert sale.call().mapTokenSums(2) == 18_000_000
 
 
 def test_buyTokensFail(viewly_sale, web3, customer):
@@ -250,6 +273,22 @@ def test_totalSupply(viewly_sale):
     # call ViewlySale.totalSupply()
     pass
 
+
+def test_mintableTokenSupply(viewly_sale):
+    """ Check that we can really only mint 2% a month. """
+    sale = viewly_sale
+    max_supply = sale.call().tokenCreationCap()
+    monthly_supply = sale.call().mintableTokenAmount()
+
+    assert monthly_supply == max_supply // 100 * monthly_supply
+
+def test_mintedLastMonthSum(viewly_sale):
+    sale = viewly_sale
+    assert sale.call().mintedLastMonthSum() == 0
+
+    # todo
+    # mint something
+    # assert the new sum is correct
 
 # helpers
 # -------
