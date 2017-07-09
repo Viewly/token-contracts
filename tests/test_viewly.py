@@ -7,7 +7,7 @@ from ethereum.tester import TransactionFailed
 
 @pytest.fixture()
 def viewly_sale(chain) -> Contract:
-    TokenFactory = chain.get_contract_factory('ViewlyAuctionRecurrent')
+    TokenFactory = chain.get_contract_factory('ViewlySale')
     deploy_txn_hash = TokenFactory.deploy()  # arguments=[x, y, z]
     contract_address = chain.wait.for_contract_address(deploy_txn_hash)
     return TokenFactory(address=contract_address)
