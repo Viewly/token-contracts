@@ -256,6 +256,27 @@ def test_buyTokens(running_round_one, web3, customer, customer2):
     assert user_deposit == 2 * msg_value
 
 
+# TODO: test claiming functionality
+
+def test_secureEth(ending_round_one, web3):
+    sale = ending_round_one
+
+    multisig_balance = web3.eth.getBalance(multisig_addr)
+    assert multisig_balance == 0
+
+    contract_balance = web3.eth.getBalance(sale.address)
+    assert contract_balance == to_wei(20, 'ether')
+
+    # drain the contract
+    sale.transact().secureEth()
+
+    multisig_balance = web3.eth.getBalance(multisig_addr)
+    assert multisig_balance == to_wei(20, 'ether')
+
+    contract_balance = web3.eth.getBalance(sale.address)
+    assert contract_balance == 0
+
+
 def test_totalEth(running_round_one_buyers):
     sale = running_round_one_buyers
 
@@ -277,18 +298,53 @@ def test_totalSupply(viewly_sale):
 def test_mintableTokenSupply(viewly_sale):
     """ Check that we can really only mint 2% a month. """
     sale = viewly_sale
-    max_supply = sale.call().tokenCreationCap()
-    monthly_supply = sale.call().mintableTokenAmount()
+    hard_cap = sale.call().tokenCreationCap()
+    mintMonthlyMax = sale.call().mintMonthlyMax()
 
-    assert monthly_supply == max_supply // 100 * monthly_supply
+    mintable_now = sale.call().mintableTokenAmount()
+    assert mintable_now == hard_cap * mintMonthlyMax // 100
+
+
+def step_mint_tokens(sale, to_mint = 10_000):
+    # check old values
+    mintable_before = sale.call().mintableTokenAmount()
+    balance_before = sale.call().balanceOf(multisig_addr)
+
+    # mint new tokens
+    sale.transact().mintReserve(to_mint)
+    assert sale.call().balanceOf(multisig_addr) == balance_before + to_mint
+
+    # mintable amount should be to_mint less now
+    assert sale.call().mintableTokenAmount() == mintable_before - to_mint
+
+def test_mintReserve(viewly_sale):
+    sale = viewly_sale
+    to_mint = 10_000
+
+    # sanity checks
+    mintableTokenAmount = sale.call().mintableTokenAmount()
+    mintable_now = mintableTokenAmount - sale.call().mintedLastMonthSum()
+    assert mintable_now > 0
+    # since we haven't minted any tokens previously, the whole
+    # monthly allocation should be mintable already
+    assert sale.call().mintableTokenAmount() == mintable_now
+
+    # multisig addr should have the newly minted tokens
+    balance_before = sale.call().balanceOf(multisig_addr)
+    sale.transact().mintReserve(to_mint)
+    assert sale.call().balanceOf(multisig_addr) == balance_before + to_mint
+
+    # mintable amount should be to_mint less now
+    assert mintableTokenAmount == to_mint + sale.call().mintableTokenAmount()
 
 def test_mintedLastMonthSum(viewly_sale):
     sale = viewly_sale
     assert sale.call().mintedLastMonthSum() == 0
 
-    # todo
-    # mint something
-    # assert the new sum is correct
+    to_mint = 10_000
+    step_mint_tokens(sale, to_mint)
+    assert sale.call().mintedLastMonthSum() == to_mint
+
 
 # helpers
 # -------

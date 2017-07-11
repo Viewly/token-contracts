@@ -286,7 +286,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     }
 
     // forward the funds from the contract to a mulitsig addr.
-    function secureETH() auth note returns(bool) {
+    function secureEth() auth note returns(bool) {
         assert(this.balance > 0);
         return multisigAddr.send(this.balance);
     }
@@ -326,6 +326,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
         // transfer minted tokens to a multisig wallet
         uint balance = VIEW.balanceOf(msg.sender);
+        if (balance == 0) throw;
         if (!VIEW.transfer(multisigAddr, balance)) throw;
 
         // log mintage
@@ -339,7 +340,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         sumMinted = 0;
         for(uint8 x = 0; x < mintHistory.length; x++)
         {
-            if (mintHistory[x].timestamp < monthAgo) {
+            if (mintHistory[x].timestamp > monthAgo) {
                 sumMinted += mintHistory[x].amount;
             }
         }
@@ -356,7 +357,8 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     // 2% of total supply = ?
     function mintableTokenAmount() constant returns(uint) {
-        return cast(wdiv(wmul(tokenCreationCap, mintMonthlyMax), 100));
+        uint multiplier = mul(tokenCreationCap, mintMonthlyMax);
+        return div(multiplier, 100);
     }
 
 
