@@ -9,6 +9,21 @@ from ethereum.tester import TransactionFailed
 
 multisig_addr = '0x0000000000000000000000000000000000000000'
 
+rounds = {
+    1: {
+        'block_future_offset': 0,
+        'duration': 5 * 24,
+        'token_cap': 18_000_000,
+        'eth_cap': 18_000_000 // 300,  # 1 ETH = $300, 18M USD cap
+    },
+    2: {
+        'block_future_offset': 0,
+        'duration': 5 * 24,
+        'token_cap': 18_000_000,
+        'eth_cap': 18_000_000 // 300,  # 1 ETH = $300, 18M USD cap
+    }
+}
+
 
 @pytest.fixture()
 def viewly_sale(chain) -> Contract:
@@ -23,10 +38,11 @@ def step_start_sale(sale: Contract, round_num = 1) -> Contract:
     assert is_not_running(sale)
 
     # initialize the sale
-    round_sale_duration = 5 * 24
-    block_future_offset = 0
-    round_token_cap = 18_000_000
-    round_eth_cap = 18_000_000 // 245
+    r = rounds[round_num]
+    round_sale_duration = r['duration']
+    block_future_offset = r['block_future_offset']
+    round_token_cap = r['token_cap']
+    round_eth_cap = r['eth_cap']
 
     sale.transact().startSale(
         round_sale_duration,
@@ -256,7 +272,45 @@ def test_buyTokens(running_round_one, web3, customer, customer2):
     assert user_deposit == 2 * msg_value
 
 
-# TODO: test claiming functionality
+def test_claim(ending_round_one, customer):
+    sale = ending_round_one
+
+    # sanity checks
+    assert sale.call().mapEthDeposits(1, customer) == to_wei(10, 'ether')
+    assert sale.call().mapTokenSums(1) == rounds[1]['token_cap']
+    assert sale.call().mapEthSums(1) == to_wei(20, 'ether')
+
+    # this user sent in 10 eth, should get 50% of token supply
+    sale.transact({"from": customer}).claim(1)
+
+    # the new deposit balance should be empty
+    assert sale.call().mapEthDeposits(1, customer) == 0
+
+    # calculate if customer received correct amount of VIEW tokens
+    round_eth_raised = sale.call().mapEthSums(1)
+    should_receive = to_wei(10, 'ether') / round_eth_raised * rounds[1]['token_cap']
+    assert sale.call().balanceOf(customer) == should_receive
+
+
+def test_claimFail(ending_round_one, customer, beneficiary):
+    sale = ending_round_one
+
+    # should not be able to claim 0 round
+    with pytest.raises(TransactionFailed):
+        sale.transact({"from": customer}).claim(0)
+
+    # should not be able to claim nonexistent round
+    with pytest.raises(TransactionFailed):
+        sale.transact({"from": customer}).claim(2)
+
+    # should not be able to claim if haven't contributed
+    with pytest.raises(TransactionFailed):
+        sale.transact({"from": beneficiary}).claim(1)
+
+    # should not be able to claim twice
+    sale.transact({"from": customer}).claim(1)
+    with pytest.raises(TransactionFailed):
+        sale.transact({"from": customer}).claim(1)
 
 def test_secureEth(ending_round_one, web3):
     sale = ending_round_one

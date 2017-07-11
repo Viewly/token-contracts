@@ -74,6 +74,13 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         uint256 ethSent
     );
 
+    event LogClaimTokens(
+        uint8 roundNumber,
+        address buyer,
+        uint256 ethBurned,
+        uint128 tokensSent
+    );
+
     event LogStartSale(
         uint8   roundNumber,
         uint256 roundStartBlock,
@@ -144,6 +151,11 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         auth
         note
     {
+        // sanity checks
+        assert(roundDurationHours_ > 0);
+        assert(roundTokenCap_ > 0);
+        assert(roundEthCap_ > 0);
+
         // this MUST be to_wei(x, 'ether')
         roundEthCap = roundEthCap_;
 
@@ -244,33 +256,52 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         return VIEW.balanceOf(address_);
     }
 
-    function unclaimedBalanceOf(uint8 roundNumber_, address address_)
-        constant
-        returns(uint256)
-    {
-        return mapEthDeposits[roundNumber_][address_];
-    }
-
 
     //
     // CLAIM
     // -----
 
     // once the sale is ended, users can claim their share of tokens
-    function claim(uint8 roundNumber_) notRunning {
+    function claim(uint8 roundNumber_) notRunning returns(uint128){
+        // the round must had happened
+        assert(roundNumber_ > 0);
         assert(roundNumber_ <= roundNumber);
+
+        // there should be funds in the round
+        assert(mapEthSums[roundNumber_] > 0);
 
         // see how much ETH was deposited by the user for this round
         uint etherSent = mapEthDeposits[roundNumber_][msg.sender];
+        assert(etherSent > 0);
+        if (etherSent == 0) {
+            return 0;
+        }
 
         // calculate the amount of tokens to claim
-        uint pctShare = div(etherSent, mapEthSums[roundNumber_]);
-        uint128 tokens = cast(mul(pctShare, mapTokenSums[roundNumber_]));
+        uint128 price = wdiv(cast(mapTokenSums[roundNumber_]), cast(mapEthSums[roundNumber_]));
+        uint128 tokens = wmul(cast(etherSent), price);
+        assert(tokens > 0);
 
-        // make the transfer
+        // burn the deposit
         mapEthDeposits[roundNumber_][msg.sender] = 0;
-        VIEW.push(msg.sender, tokens);
+
+        // mint the new tokens
+        VIEW.mintTo(msg.sender, tokens);
+
+        LogClaimTokens(
+            roundNumber_,
+            msg.sender,
+            etherSent,
+            tokens
+        );
+        return tokens;
     }
+
+    // # This code somehow works, but I have no idea how. Should ask for expert advice.
+    // uint128 price = wdiv(cast(mapTokenSums[roundNumber_]), cast(mapEthSums[roundNumber_]));
+    //
+    // # Why does this not work? Its *almost* the same code!
+    // uint price = div(mapTokenSums[roundNumber_], mapEthSums[roundNumber_]);
 
 
     function registerViewlyAddr(string pubKey) {
