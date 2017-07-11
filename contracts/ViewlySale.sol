@@ -304,14 +304,14 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         auth
         returns(uint toMint)
     {
+        toMint = requestedAmount;
 
         // calculate remaining monthly allowance
         uint monthlyAllowance = sub(mintableTokenAmount(), mintedLastMonthSum());
         assert(monthlyAllowance > 0);
 
         // soft cap to the available monthly allowance
-        toMint = 0;
-        if (requestedAmount > monthlyAllowance) {
+        if (toMint > monthlyAllowance) {
             toMint = monthlyAllowance;
         }
 
@@ -322,12 +322,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         }
 
         // mint the new tokens
-        VIEW.mint(cast(toMint));
-
-        // transfer minted tokens to a multisig wallet
-        uint balance = VIEW.balanceOf(msg.sender);
-        if (balance == 0) throw;
-        if (!VIEW.transfer(multisigAddr, balance)) throw;
+        VIEW.mintTo(multisigAddr, cast(toMint));
 
         // log mintage
         mintHistory.push(Mintage(toMint, block.timestamp));

@@ -307,15 +307,15 @@ def test_mintableTokenSupply(viewly_sale):
 
 def step_mint_tokens(sale, to_mint = 10_000):
     # check old values
-    mintable_before = sale.call().mintableTokenAmount()
+    minted_before = sale.call().mintedLastMonthSum()
     balance_before = sale.call().balanceOf(multisig_addr)
 
     # mint new tokens
     sale.transact().mintReserve(to_mint)
     assert sale.call().balanceOf(multisig_addr) == balance_before + to_mint
 
-    # mintable amount should be to_mint less now
-    assert sale.call().mintableTokenAmount() == mintable_before - to_mint
+    # amount should have been recorded properly
+    assert sale.call().mintedLastMonthSum() == minted_before + to_mint
 
 def test_mintReserve(viewly_sale):
     sale = viewly_sale
@@ -333,9 +333,6 @@ def test_mintReserve(viewly_sale):
     balance_before = sale.call().balanceOf(multisig_addr)
     sale.transact().mintReserve(to_mint)
     assert sale.call().balanceOf(multisig_addr) == balance_before + to_mint
-
-    # mintable amount should be to_mint less now
-    assert mintableTokenAmount == to_mint + sale.call().mintableTokenAmount()
 
 def test_mintedLastMonthSum(viewly_sale):
     sale = viewly_sale

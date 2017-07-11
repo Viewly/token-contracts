@@ -1,5 +1,8 @@
 /// token.sol -- ERC20 implementation with minting and burning
 
+// This contract has been modified by @furion.
+// 20170710: added mintTo() helper
+
 // Copyright (C) 2015, 2016, 2017  DappHub, LLC
 
 // Licensed under the Apache License, Version 2.0 (the "License").
@@ -18,12 +21,13 @@ import "./base.sol";
 contract DSToken is DSTokenBase(0), DSStop {
 
     bytes32  public  symbol;
-    uint256  public  decimals = 18; // standard token precision. override to customize
+    uint256  public  decimals = 18; // standard token precision.
 
     function DSToken(bytes32 symbol_) {
         symbol = symbol_;
     }
 
+    // public methods
     function transfer(address dst, uint wad) stoppable note returns (bool) {
         return super.transfer(dst, wad);
     }
@@ -36,6 +40,7 @@ contract DSToken is DSTokenBase(0), DSStop {
         return super.approve(guy, wad);
     }
 
+    // alases
     function push(address dst, uint128 wad) returns (bool) {
         return transfer(dst, wad);
     }
@@ -43,6 +48,7 @@ contract DSToken is DSTokenBase(0), DSStop {
         return transferFrom(src, msg.sender, wad);
     }
 
+    // contract methods
     function mint(uint128 wad) auth stoppable note {
         _balances[msg.sender] = add(_balances[msg.sender], wad);
         _supply = add(_supply, wad);
@@ -51,11 +57,14 @@ contract DSToken is DSTokenBase(0), DSStop {
         _balances[msg.sender] = sub(_balances[msg.sender], wad);
         _supply = sub(_supply, wad);
     }
+    function mintTo(address dst, uint128 wad) auth stoppable note {
+        _balances[dst] = add(_balances[dst], wad);
+        _supply = add(_supply, wad);
+    }
 
     // Optional token name
-
     bytes32   public  name = "";
-    
+
     function setName(bytes32 name_) auth {
         name = name_;
     }
