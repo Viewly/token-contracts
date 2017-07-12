@@ -304,13 +304,19 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // uint price = div(mapTokenSums[roundNumber_], mapEthSums[roundNumber_]);
 
 
+    // takes a hex encoded public key
     function registerViewlyAddr(string pubKey) {
+        // (length == 54) -> VIEW7ab...xYz ?
         assert(bytes(pubKey).length <= 64);
         mapViewlyKeys[msg.sender] = pubKey;
         LogRegister(msg.sender, pubKey);
     }
 
-    // freeze the token before the snapshot
+    // Note: Freezing the token may cause issues with exchange held funds.
+    // It might be better to leave the transfers open indefinitely,
+    // and offer a burn contract + converter service,
+    // so that users can freely withdraw their tokens
+    // from centralized exchanges and convert them.
     function freeze() auth {
         VIEW.stop();
         LogFreeze(block.number);

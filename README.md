@@ -1,5 +1,8 @@
+*Viewly is building a decentralized YouTube, with crypto powered monetization models for
+content creators.* Learn more at https://view.ly
+
 ## Introduction
-This document has been created to explain the smart contract in **Plain English**, so that non-developers can understand the mechanics of the Viewly Crowdsale. We will also use this opportunity to clarify our intentions, and explain why we made certain decisions.
+This document has been created to explain the Viewly smart contract in **Plain English**, so that non-developers can understand the mechanics of the Viewly Crowdsale. We will also use this opportunity to clarify our intentions, and explain why we made certain decisions.
 
 ## Hard Cap
 The `ViewlySale` contract has an immutable hard cap of 100M VIEW tokens.
@@ -49,6 +52,12 @@ Hypothetically speaking, the Viewly project gains serious traction, and readies 
 | 30M VIEW (30%)   | 150M USD          | 50M USD      | 0.6M VIEW    | $1.67          |
 | 30M VIEW (30%)   | 150M USD          | 100M USD     | 0.3M VIEW    | $3.3           |
 | 30M VIEW (30%)   | 150M USD          | 150M USD     | 0.2M VIEW    | $5.0           |
+
+
+## Liquidity
+The ERC-20 VIEW Tokens become liquid immediately after the sale is closed (the price is not known until the end).
+Users need to claim their ERC-20 View tokens manually, because Ethereum is not capable of storing or iterating a list of purchases.
+This is done simply by calling `claim(roundNumber)`. Claims can be made for current and past rounds, at any time.
 
 
 ## Reserved Supply and Vesting
