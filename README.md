@@ -100,7 +100,46 @@ Viewly ERC-20 tokens issued on Ethereum will be convertible into native Viewly t
 In the future version of this contract, it will be possible to register any number of Viewly addresses, as well as burn arbitrary amounts. This would allow users to split their ERC-20 tokens into multiple Viewly accounts, as well as provide exchanges with an easy way to convert the tokens for their clients.
 
 
+# Instructions
+
 ## Dependencies
 Viewly smart contracts are leveraging the [Dappsys](https://dappsys.readthedocs.io/en/latest/) framework, because Dappsys provides clean and well written implementations of things like safe math, ERC-20 token and multisig.
 
 We are also using [Populus](http://populus.readthedocs.io/en/latest/) as a development framework. The Viewly contract testing is fully automated, and the tests are written in Python.
+
+## Running Locally
+To compile the contracts, run:
+```
+populus compile
+```
+
+To test the contracts, run:
+```
+py.test tests/
+```
+
+## Running on a testnet
+To deploy the contracts to the testnet (Ropsten),
+make sure you have local `geth` running first:
+```
+populus chain run ropsten
+```
+
+Then, you can deploy the contract with:
+```
+python deploy_ropsten.py
+```
+
+Afterwards, you can run the demo app to interact with the contract:
+```
+cd app
+export FLASK_APP=app.py
+flask run
+```
+
+### Caveats
+If you've just installed `geth`, you need to create a new account and send some
+Ropsten tokens to it:
+```
+geth account new
+```
