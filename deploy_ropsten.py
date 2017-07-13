@@ -39,17 +39,21 @@ def main():
         print("Web3 provider is", web3.currentProvider)
 
         # The address who will be the owner of the contracts
-        beneficiary = web3.eth.coinbase
-        assert beneficiary, "Make sure your node has coinbase account created"
+        owner = web3.eth.coinbase
+        assert owner, "Make sure your node has coinbase account created"
+        print("Coinbase address is", owner)
+
+        # Unlock the coinbase account
+        web3.personal.unlockAccount(owner, 'test', duration=None)
 
         # Random address on Ropsten testnet
         # This address will receive ETH funds
-        multisig_address = "0xcbb09f94680f10887f1c358df9aea5c425a1f0b8"
-        print("Multisig address is", multisig_address)
+        # multisig_address = "0xcbb09f94680f10887f1c358df9aea5c425a1f0b8"
+        # print("Multisig address is", multisig_address)
 
         # Deploy the ViewlySale contract
         txhash = ViewlySale.deploy(
-            transaction={"from": beneficiary},
+            transaction={"from": owner},
             args=[False]
         )
         print("Deploying crowdsale, tx hash is", txhash)
@@ -60,12 +64,13 @@ def main():
         # Initialize the sale
         print("Initializing contracts")
         sale = ViewlySale(address=crowdsale_address)
-        sale.transact().startSale(
+        tx_hash = sale.transact().startSale(
             5 * 24,
             0,
             18_000_000,
-            to_wei(round_eth_cap, 'ether'),
+            to_wei(18_000_000 // 300, 'ether'),
         )
+        check_succesful_tx(web3, tx_hash)
 
         # state.Running
         assert is_running(sale)

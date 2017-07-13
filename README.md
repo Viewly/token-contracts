@@ -138,8 +138,16 @@ flask run
 ```
 
 ### Caveats
-If you've just installed `geth`, you need to create a new account and send some
-Ropsten tokens to it:
+If you've just installed `geth`, you need to create a new account
+and send some `ropsten` tokens to it:
 ```
-geth account new
+geth --testnet account new
 ```
+*The default password used by the deployment script is `test`*.
+
+
+Populus chain is currently broken, start the testnet like this:
+```
+geth --testnet --etherbase "0x25b99234a1d2e37fe340e8f9046d0cf0d9558c58"
+```
+*The etherbase account is the main account that will be creating the contract.*

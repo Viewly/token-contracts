@@ -26,7 +26,7 @@
     },
     "ropsten": {
       "chain": {
-        "class": "populus.chain.geth.TestnetChain"
+        "class": "populus.chain.external.ExternalChain"
       },
       "contracts": {
         "backends": {
@@ -45,7 +45,12 @@
         }
       },
       "web3": {
-        "$ref": "web3.GethIPC"
+          "provider": {
+              "class": "web3.providers.ipc.IPCProvider",
+              "settings": {
+                  "ipc_path": "/Users/user/Library/Ethereum/testnet/geth.ipc"
+              }
+          }
       }
     },
     "temp": {
