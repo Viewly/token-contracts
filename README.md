@@ -10,12 +10,10 @@ ERC-20 tokens to raise funds for development and growth of our **decentralied vi
 
 This document has been created to explain the Viewly smart contract in **Plain English**, so that non-developers can understand the mechanics of the Viewly Crowdsale. We will also use this opportunity to clarify our intentions, and explain why we made certain decisions.
 
-## TLDR
+## TL;DR
 There are three properties of our crowdfund model:  
-1.) Multiple Sales (Rounds), to mimick Seed, Series A, B, C... from startup world.
-
-2.) Contract enforced release for purposes of vesting, the bounty program, influencer outreach, and rewards for community contributors.
-
+1.) Multiple Sales (Rounds), to mimick Seed, Series A, B, C... from startup world.  
+2.) Contract enforced release for purposes of vesting, the bounty program, influencer outreach, and rewards for community contributors.  
 3.) Migration mechanism, to burn and claim the platform native tokens.
 
 
