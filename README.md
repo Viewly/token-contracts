@@ -1,9 +1,20 @@
 ![](https://i.imgur.com/ekvJd60.png)
+
 *Viewly is building a decentralized YouTube, with crypto powered monetization models for
 content creators.* Learn more at https://view.ly
 
 ## Introduction
+We have built a flexible Ethereum crowdfunding contract, that allows us to to sell
+ERC-20 tokens to raise funds for development and growth of our **decentralied video platform**.
+
 This document has been created to explain the Viewly smart contract in **Plain English**, so that non-developers can understand the mechanics of the Viewly Crowdsale. We will also use this opportunity to clarify our intentions, and explain why we made certain decisions.
+
+## TLDR
+There are three properties of our crowdfund model:  
+1.) Multiple Sales (Rounds), to mimick Seed, Series A, B, C... from startup world.
+2.) Contract enforced release for purposes of vesting, the bounty program, influencer outreach, and rewards for community contributors.
+3.) Migration mechanism, to burn and claim the platform native tokens.
+
 
 ## Hard Cap
 The `ViewlySale` contract has an immutable hard cap of 100M VIEW tokens.
@@ -71,7 +82,8 @@ This **vesting schedule** creates artificial scarcity in the supply of tokens av
 ## Predictable Float
 The vesting schedule based release of the reserved allocation also acts as a
 remedy against uncertanty of implied valuations due to the unpredictable float
-![](https://i.imgur.com/FNHIi3L.png) *[Source](https://blog.coinfund.io/toward-more-equitable-token-sale-structures-a71db12c8aff)*
+![](https://i.imgur.com/FNHIi3L.png)
+*[Source](https://blog.coinfund.io/toward-more-equitable-token-sale-structures-a71db12c8aff)*
 
 In Viewly's model, the unsold tokens are simply not available, and cannot be used
 for insider trading or market manipulation.
