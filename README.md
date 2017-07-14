@@ -1,3 +1,4 @@
+![](https://i.imgur.com/ekvJd60.png)
 *Viewly is building a decentralized YouTube, with crypto powered monetization models for
 content creators.* Learn more at https://view.ly
 
@@ -64,8 +65,19 @@ This is done simply by calling `claim(roundNumber)`. Claims can be made for curr
 Reserved supply is used to incentivize the development team, fund the bounty program, and the influencer outreach.
 
 The creation of reserved supply has been decoupled from the sale event. `ViewlySale` contract is capable of issuing reserved supply on demand, however a rate limit
-of 2% of total token supply per month is imposed by the contract.
+of up to 2% of total token supply per month is imposed by the contract.
 This **vesting schedule** creates artificial scarcity in the supply of tokens available to Viewly, which forces us to be more prudent in regards to our spending, and incentivizes long-term thinking.
+
+## Predictable Float
+The vesting schedule based release of the reserved allocation also acts as a
+remedy against uncertanty of implied valuations due to the unpredictable float
+![](https://i.imgur.com/FNHIi3L.png) *[Source](https://blog.coinfund.io/toward-more-equitable-token-sale-structures-a71db12c8aff)*
+
+In Viewly's model, the unsold tokens are simply not available, and cannot be used
+for insider trading or market manipulation.
+The tokens can be minted at a fixed vesting schedule up to 2% per month, and
+the majority of these tokens should be transparently allocated via the
+Bounty Program and/or the Worker Proposal system (TBA).
 
 ## Code is law
 We believe that the crowdsale contract should be immutable.
@@ -79,7 +91,7 @@ We believe that such features leave the door open for abuse, and decrease the tr
 This sale contract will have no `tx.gasprice` limit.
 
 Setting a gas limit, in combination with high transaction volume might clog the Ethereum network (see Bancor and Status).
-![](http://i.imgur.com/dlNarkq.png)
+![](https://i.imgur.com/dlNarkq.png)
 
 ### Targeting Sophisticated Buyers
 Having no gas limit enables sophisticated buyers to perform crowdsale *sniping*. 
