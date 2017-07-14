@@ -127,7 +127,7 @@ populus chain run ropsten
 
 Then, you can deploy the contract with:
 ```
-python deploy_ropsten.py
+python ropsten_deploy.py
 ```
 
 Afterwards, you can run the demo app to interact with the contract:
