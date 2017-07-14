@@ -1,7 +1,8 @@
 ![](https://i.imgur.com/ekvJd60.png)
 
 *Viewly is building a decentralized YouTube, with crypto powered monetization models for
-content creators.* Learn more at https://view.ly
+content creators.*
+Learn more at https://view.ly
 
 ## Introduction
 We have built a flexible Ethereum crowdfunding contract, that allows us to to sell
@@ -12,7 +13,9 @@ This document has been created to explain the Viewly smart contract in **Plain E
 ## TLDR
 There are three properties of our crowdfund model:  
 1.) Multiple Sales (Rounds), to mimick Seed, Series A, B, C... from startup world.
+
 2.) Contract enforced release for purposes of vesting, the bounty program, influencer outreach, and rewards for community contributors.
+
 3.) Migration mechanism, to burn and claim the platform native tokens.
 
 
