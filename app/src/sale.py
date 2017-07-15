@@ -37,7 +37,7 @@ def unlock_account(address: str, password: str):
 
 class ViewlySale():
 
-    abi_path = 'build/abi.txt'
+    abi_path = '../build/abi.txt'
     owner_address = '0x25b99234a1d2e37fe340e8f9046d0cf0d9558c58'
     contract_address = '0x9ff89bb6ff7e6b4a023e8a5c1babccf39d15b75b'
 
@@ -58,6 +58,15 @@ class ViewlySale():
     def is_running(self) -> bool:
         state = self.sale.call().state()
         return state == 1
+
+    def sale_info(self):
+        return {
+            'address': self.address,
+            'owner': self.sale.call().owner(),
+            'multisig': self.sale.call().multisigAddr(),
+            'hardCap': self.sale.call().tokenCreationCap(),
+            'mintRate': self.sale.call().mintMonthlyMax(),
+        }
 
     def current_round(self):
         round_number = self.current_round_number()
@@ -81,6 +90,9 @@ def eth_to_int(amount) -> int:
 
 
 if __name__ == "__main__":
+    from pprint import pprint
     sale = ViewlySale()
     print(sale.is_running())
-    print(sale.current_round())
+    pprint(sale.sale_info())
+    pprint(sale.current_round())
+

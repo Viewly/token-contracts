@@ -164,9 +164,10 @@ Then, you can deploy the contract with:
 python ropsten_deploy.py
 ```
 
-Afterwards, you can run the demo app to interact with the contract:
+## Contract Viewer
+Afterwards deploying to testnet, you can run the web app to interact with the contract:
 ```
 cd app
-export FLASK_APP=app.py
+export FLASK_APP=src/server.py
 flask run
 ```
