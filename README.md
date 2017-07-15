@@ -1,7 +1,7 @@
 ![](https://i.imgur.com/ekvJd60.png)
 
 *Viewly is building a decentralized YouTube, with crypto powered monetization models for
-content creators.*
+content creators.*  
 Learn more at https://view.ly
 
 ## Introduction
@@ -83,7 +83,7 @@ This **vesting schedule** creates artificial scarcity in the supply of tokens av
 ## Predictable Float
 The vesting schedule based release of the reserved allocation also acts as a
 remedy against uncertanty of implied valuations due to the unpredictable float
-![](https://i.imgur.com/FNHIi3L.png)
+![](https://i.imgur.com/FNHIi3L.png)  
 *[Source](https://blog.coinfund.io/toward-more-equitable-token-sale-structures-a71db12c8aff)*
 
 In Viewly's model, the unsold tokens are simply not available, and cannot be used
@@ -144,11 +144,20 @@ py.test tests/
 ```
 
 ## Running on a testnet
+If you've just installed `geth`, you need to create a new account
+and send some `ropsten` tokens to it:
+```
+geth --testnet account new
+```
+*The default password used by the deployment script is `test`*.
+
 To deploy the contracts to the testnet (Ropsten),
 make sure you have local `geth` running first:
 ```
-populus chain run ropsten
+geth --testnet --etherbase "0x25b99234a1d2e37fe340e8f9046d0cf0d9558c58"
 ```
+*The etherbase account is the main account that will be creating the contract.*
+
 
 Then, you can deploy the contract with:
 ```
@@ -161,18 +170,3 @@ cd app
 export FLASK_APP=app.py
 flask run
 ```
-
-### Caveats
-If you've just installed `geth`, you need to create a new account
-and send some `ropsten` tokens to it:
-```
-geth --testnet account new
-```
-*The default password used by the deployment script is `test`*.
-
-
-Populus chain is currently broken, start the testnet like this:
-```
-geth --testnet --etherbase "0x25b99234a1d2e37fe340e8f9046d0cf0d9558c58"
-```
-*The etherbase account is the main account that will be creating the contract.*
