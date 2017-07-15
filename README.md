@@ -159,9 +159,9 @@ geth --testnet --etherbase "0x25b99234a1d2e37fe340e8f9046d0cf0d9558c58"
 *The etherbase account is the main account that will be creating the contract.*
 
 
-Then, you can deploy the contract with:
+Then you can deploy the contract to given chain with:
 ```
-python ropsten_deploy.py
+python deploy.py {ropsten|rinkeby|mainnet}
 ```
 
 ## Contract Viewer

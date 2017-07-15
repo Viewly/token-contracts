@@ -3,6 +3,7 @@ from populus.utils.wait import wait_for_transaction_receipt
 from web3 import Web3
 from eth_utils import to_wei
 import json
+import sys
 
 
 def check_succesful_tx(web3: Web3, txid: str, timeout=180) -> dict:
@@ -28,11 +29,11 @@ def is_running(sale):
 def main():
     project = Project()
 
-    # This is configured in populus.json
-    # We are working on a testnet
-    chain_name = "ropsten"
-    with project.get_chain(chain_name) as chain:
+    # Chain must be preconfigured in populus.json
+    chain_name = sys.argv[1]
+    print("Chain is", chain_name)
 
+    with project.get_chain(chain_name) as chain:
         # Load Populus contract proxy classes
         ViewlySale = chain.get_contract_factory('ViewlySale')
 
