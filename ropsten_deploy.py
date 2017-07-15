@@ -2,6 +2,7 @@ from populus import Project
 from populus.utils.wait import wait_for_transaction_receipt
 from web3 import Web3
 from eth_utils import to_wei
+import json
 
 
 def check_succesful_tx(web3: Web3, txid: str, timeout=180) -> dict:
@@ -75,7 +76,10 @@ def main():
         # state.Running
         assert is_running(sale)
 
-        print("All done! Enjoy your decentralized future.")
+        with open('build/abi.txt', 'w') as f:
+            f.write(json.dumps(sale.abi))
+
+        print("All done! ABI has been stored in build/abi.txt")
 
 
 if __name__ == "__main__":
