@@ -1,8 +1,21 @@
+![](https://i.imgur.com/ekvJd60.png)
+
 *Viewly is building a decentralized YouTube, with crypto powered monetization models for
-content creators.* Learn more at https://view.ly
+content creators.*  
+Learn more at https://view.ly
 
 ## Introduction
+We have built a flexible Ethereum crowdfunding contract, that allows us to to sell
+ERC-20 tokens to raise funds for development and growth of our **decentralied video platform**.
+
 This document has been created to explain the Viewly smart contract in **Plain English**, so that non-developers can understand the mechanics of the Viewly Crowdsale. We will also use this opportunity to clarify our intentions, and explain why we made certain decisions.
+
+## TL;DR
+There are three properties of our crowdfund model:  
+1.) Multiple Sales (Rounds), to mimick Seed, Series A, B, C... from startup world.  
+2.) Contract enforced release for purposes of vesting, the bounty program, influencer outreach, and rewards for community contributors.  
+3.) Migration mechanism, to burn and claim the platform native tokens.
+
 
 ## Hard Cap
 The `ViewlySale` contract has an immutable hard cap of 100M VIEW tokens.
@@ -64,8 +77,20 @@ This is done simply by calling `claim(roundNumber)`. Claims can be made for curr
 Reserved supply is used to incentivize the development team, fund the bounty program, and the influencer outreach.
 
 The creation of reserved supply has been decoupled from the sale event. `ViewlySale` contract is capable of issuing reserved supply on demand, however a rate limit
-of 2% of total token supply per month is imposed by the contract.
+of up to 2% of total token supply per month is imposed by the contract.
 This **vesting schedule** creates artificial scarcity in the supply of tokens available to Viewly, which forces us to be more prudent in regards to our spending, and incentivizes long-term thinking.
+
+## Predictable Float
+The vesting schedule based release of the reserved allocation also acts as a
+remedy against uncertanty of implied valuations due to the unpredictable float
+![](https://i.imgur.com/FNHIi3L.png)  
+*[Source](https://blog.coinfund.io/toward-more-equitable-token-sale-structures-a71db12c8aff)*
+
+In Viewly's model, the unsold tokens are simply not available, and cannot be used
+for insider trading or market manipulation.
+The tokens can be minted at a fixed vesting schedule up to 2% per month, and
+the majority of these tokens should be transparently allocated via the
+Bounty Program and/or the Worker Proposal system (TBA).
 
 ## Code is law
 We believe that the crowdsale contract should be immutable.
@@ -79,7 +104,7 @@ We believe that such features leave the door open for abuse, and decrease the tr
 This sale contract will have no `tx.gasprice` limit.
 
 Setting a gas limit, in combination with high transaction volume might clog the Ethereum network (see Bancor and Status).
-![](http://i.imgur.com/dlNarkq.png)
+![](https://i.imgur.com/dlNarkq.png)
 
 ### Targeting Sophisticated Buyers
 Having no gas limit enables sophisticated buyers to perform crowdsale *sniping*. 
@@ -100,7 +125,51 @@ Viewly ERC-20 tokens issued on Ethereum will be convertible into native Viewly t
 In the future version of this contract, it will be possible to register any number of Viewly addresses, as well as burn arbitrary amounts. This would allow users to split their ERC-20 tokens into multiple Viewly accounts, as well as provide exchanges with an easy way to convert the tokens for their clients.
 
 
+# Instructions
+
 ## Dependencies
 Viewly smart contracts are leveraging the [Dappsys](https://dappsys.readthedocs.io/en/latest/) framework, because Dappsys provides clean and well written implementations of things like safe math, ERC-20 token and multisig.
 
 We are also using [Populus](http://populus.readthedocs.io/en/latest/) as a development framework. The Viewly contract testing is fully automated, and the tests are written in Python.
+
+## Running Locally
+To compile the contracts, run:
+```
+populus compile
+```
+
+To test the contracts, run:
+```
+py.test tests/
+```
+
+## Running on a testnet
+If you've just installed `geth`, you need to create a new account
+and send some `ropsten` tokens to it:
+```
+geth --testnet account new
+```
+*The default password used by the deployment script is `test`*.
+
+To deploy the contracts to the testnet (Ropsten),
+make sure you have local `geth` running first:
+```
+geth --testnet --etherbase "0x25b99234a1d2e37fe340e8f9046d0cf0d9558c58"
+```
+*The etherbase account is the main account that will be creating the contract.*
+
+
+Then you can deploy the contract to given chain with:
+```
+python deploy.py {ropsten|rinkeby|mainnet}
+```
+
+## Contract Viewer
+Afterwards deploying to testnet, you can run the web app to interact with the contract:
+```
+cd app
+export FLASK_APP=src/server.py
+flask run
+```
+
+![](https://i.imgur.com/mUhfiZn.png)

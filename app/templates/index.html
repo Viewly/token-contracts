@@ -17,8 +17,113 @@
     <div class="ui one column stackable center aligned page grid">
         <div class="column twelve wide">
 
+            <br>
+
+            <h3>Contract Info</h3>
+            <table class="ui very compact table">
+                <thead>
+                <tr>
+                    <th>Contract Properties</th>
+                    <th>Value</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Contract Address</td>
+                    <td>{{ sale_info.address }}</td>
+                </tr>
+
+                <tr>
+                    <td>Owner Address</td>
+                    <td>{{ sale_info.owner }}</td>
+                </tr>
+
+                <tr>
+                    <td>Multisig Address</td>
+                    <td>{{ sale_info.multisig }}</td>
+                </tr>
+
+                <tr>
+                    <td>Hard cap</td>
+                    <td>{{ "{:,}".format(sale_info.hardCap) }} VIEW</td>
+
+                <tr>
+                    <td>Reserved Mint Rate</td>
+                    <td>{{ sale_info.mintRate }}%</td>
+                </tr>
+
+                </tbody>
+            </table>
 
 
+            <h3>Round Info</h3>
+            <table class="ui very compact table">
+                <thead>
+                <tr>
+                    <th>Round Properties</th>
+                    <th>Value</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Round Number</td>
+                    <td>{{ current_round.roundNumber }}</td>
+                </tr>
+                <tr>
+                    <td>Sale Running</td>
+                    <td>{{ is_running }}</td>
+                </tr>
+                <tr>
+                    <td>Sale Duration</td>
+                    <td>{{ current_round.roundDurationHours }} hours</td>
+                </tr>
+                <tr>
+                    <td>Sale Start Block</td>
+                    <td>{{ current_round.roundStartBlock }}</td>
+                </tr>
+                <tr>
+                    <td>Sale End Block</td>
+                    <td>{{ current_round.roundEndBlock }}</td>
+                </tr>
+                <tr>
+                    <td>Token Cap</td>
+                    <td>{{ "{:,}".format(current_round.roundTokenCap) }} VIEW</td>
+                </tr>
+                <tr>
+                    <td>Funding Cap</td>
+                    <td>{{ "{:,}".format(current_round.roundEthCap) }} ETH</td>
+                </tr>
+                <tr>
+                    <td>Funding Raised</td>
+                    <td>{{ current_round.roundEthRaised }} ETH</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h3>Sale Start/End Events</h3>
+            <table class="ui very compact table">
+                {%- for row in round_events %}
+                <tr>
+                    <td>{{ row }}</td>
+                </tr>
+                {%- endfor %}
+            </table>
+
+            <h3>Buy Events</h3>
+            <table class="ui very compact table">
+                {%- for row in sale_events %}
+                <tr>
+                    <td>{{ row }}</td>
+                </tr>
+                {%- endfor %}
+            </table>
+
+            <h3>ABI</h3>
+            <div class="ui form">
+                <div class="field">
+                    <textarea rows="2">{{ abi }}</textarea>
+                </div>
+            </div>
 
         </div>
     </div>
