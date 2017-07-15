@@ -171,5 +171,3 @@ cd app
 export FLASK_APP=src/server.py
 flask run
 ```
-
-![](https://i.imgur.com/mUhfiZn.png)
