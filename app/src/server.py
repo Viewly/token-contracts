@@ -15,6 +15,9 @@ def hello_world():
         sale_info=sale.sale_info(),
         current_round=sale.current_round(),
         is_running=sale.is_running(),
+        round_events=sale.round_events(),
+        sale_events=sale.sale_events(),
+        abi=sale.abi,
     )
 
 

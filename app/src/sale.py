@@ -1,6 +1,9 @@
 from web3 import Web3, IPCProvider
 from eth_utils import from_wei
 
+from toolz.itertoolz import concatv
+from funcy.colls import pluck
+
 geth_ipc_path = '/Users/user/Library/Ethereum/testnet/geth.ipc'
 
 # setup methods
@@ -82,6 +85,26 @@ class ViewlySale():
 
     def deposit_sum_for(self, user, round_number):
         return self.sale.call().mapEthDeposits(round_number, user)
+
+    def round_events(self):
+        from_block = 1286723  # TODO, replace with contract deploy block num
+        start = self.sale.on(
+            'LogStartSale',
+            filter_params={'fromBlock': from_block})
+
+        end = self.sale.on(
+            'LogEndSale',
+            filter_params={'fromBlock': from_block})
+        events = concatv(start.get(False), end.get(False))
+        return list(pluck('args', events))
+
+    def sale_events(self):
+        from_block = self.sale.call().roundStartBlock()
+        buys = self.sale.on(
+            'LogBuy',
+            filter_params={'fromBlock': from_block})
+
+        return list(pluck('args', buys.get(False)))
 
 # helpers
 # -------

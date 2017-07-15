@@ -101,8 +101,29 @@
             </table>
 
             <h3>Sale Start/End Events</h3>
+            <table class="ui very compact table">
+                {%- for row in round_events %}
+                <tr>
+                    <td>{{ row }}</td>
+                </tr>
+                {%- endfor %}
+            </table>
 
-            <h3>Buy, Claim, Register Events</h3>
+            <h3>Buy Events</h3>
+            <table class="ui very compact table">
+                {%- for row in sale_events %}
+                <tr>
+                    <td>{{ row }}</td>
+                </tr>
+                {%- endfor %}
+            </table>
+
+            <h3>ABI</h3>
+            <div class="ui form">
+                <div class="field">
+                    <textarea rows="2">{{ abi }}</textarea>
+                </div>
+            </div>
 
         </div>
     </div>
