@@ -24,7 +24,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     //
     // Note: multisigAddr MUST implement a mechanism to transfer ERC-20 tokens,
     // otherwise all VIEW tokens sent to it will be permanently lost.
-    address public constant multisigAddr = 0x0;  // todo set this
+    address public multisigAddr;  // todo set this
 
     // supply and allocation
     DSToken public VIEW;
@@ -104,7 +104,9 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     );
 
 
-    function ViewlySale(bool isTestable_) {
+    function ViewlySale(address multisigAddr_, bool isTestable_) {
+        multisigAddr = multisigAddr_;
+
         // initialize the ERC-20 Token
         // is this a bad practice?
         // should the VIEW token be deployed by the
@@ -126,12 +128,12 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     }
 
     modifier isRunning() {
-        if (state != State.Running) throw;
+        require(state == State.Running);
         _;
     }
 
     modifier notRunning() {
-        if (state == State.Running) throw;
+        require(state != State.Running);
         _;
     }
 
@@ -152,9 +154,9 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         note
     {
         // sanity checks
-        assert(roundDurationHours_ > 0);
-        assert(roundTokenCap_ > 0);
-        assert(roundEthCap_ > 0);
+        require(roundDurationHours_ > 0);
+        require(roundTokenCap_ > 0);
+        require(roundEthCap_ > 0);
 
         // this MUST be to_wei(x, 'ether')
         roundEthCap = roundEthCap_;
@@ -163,7 +165,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         roundDurationHours = roundDurationHours_;
 
         // don't exceed the hard cap
-        assert(add(totalSupply(), roundTokenCap) < tokenCreationCap);
+        require(add(totalSupply(), roundTokenCap) < tokenCreationCap);
 
         // We want to be able to start the sale contract for a block slightly
         // in the future, so that the start time is accurately known
@@ -198,7 +200,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         isRunning
         note
     {
-        assert(block.number > roundEndBlock);
+        require(block.number > roundEndBlock);
 
         // State.Done
         state = State.Done;
@@ -210,12 +212,12 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     }
 
     function buyTokens() isRunning payable {
-        assert(block.number >= roundStartBlock);
-        assert(block.number < roundEndBlock);
-        if (msg.value == 0) throw;
+        require(block.number >= roundStartBlock);
+        require(block.number < roundEndBlock);
+        require(msg.value > 0);
 
         // check if ETH cap is reached for this sale
-        assert(add(mapEthSums[roundNumber], msg.value) < roundEthCap);
+        require(add(mapEthSums[roundNumber], msg.value) < roundEthCap);
 
         // issue the claim for the tokens
         mapEthDeposits[roundNumber][msg.sender] += msg.value;
@@ -264,18 +266,15 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // once the sale is ended, users can claim their share of tokens
     function claim(uint8 roundNumber_) notRunning returns(uint128){
         // the round must had happened
-        assert(roundNumber_ > 0);
-        assert(roundNumber_ <= roundNumber);
+        require(roundNumber_ > 0);
+        require(roundNumber_ <= roundNumber);
 
         // there should be funds in the round
-        assert(mapEthSums[roundNumber_] > 0);
+        require(mapEthSums[roundNumber_] > 0);
 
         // see how much ETH was deposited by the user for this round
         uint etherSent = mapEthDeposits[roundNumber_][msg.sender];
-        assert(etherSent > 0);
-        if (etherSent == 0) {
-            return 0;
-        }
+        require(etherSent > 0);
 
         // calculate the amount of tokens to claim
         uint128 price = wdiv(cast(mapTokenSums[roundNumber_]), cast(mapEthSums[roundNumber_]));
@@ -307,7 +306,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // takes a hex encoded public key
     function registerViewlyAddr(string pubKey) {
         // (length == 54) -> VIEW7ab...xYz ?
-        assert(bytes(pubKey).length <= 64);
+        require(bytes(pubKey).length <= 64);
         mapViewlyKeys[msg.sender] = pubKey;
         LogRegister(msg.sender, pubKey);
     }
@@ -324,7 +323,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     // forward the funds from the contract to a mulitsig addr.
     function secureEth() auth note returns(bool) {
-        assert(this.balance > 0);
+        require(this.balance > 0);
         return multisigAddr.send(this.balance);
     }
 
@@ -345,7 +344,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
         // calculate remaining monthly allowance
         uint monthlyAllowance = sub(mintableTokenAmount(), mintedLastMonthSum());
-        assert(monthlyAllowance > 0);
+        require(monthlyAllowance > 0);
 
         // soft cap to the available monthly allowance
         if (toMint > monthlyAllowance) {
@@ -402,7 +401,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // and will not be accessible in the real sale contract.
 
     modifier mustBeTestable() {
-        if (isTestable != true) throw;
+        require(isTestable);
         _;
     }
 

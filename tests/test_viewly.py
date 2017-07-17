@@ -29,7 +29,7 @@ rounds = {
 def viewly_sale(chain) -> Contract:
     """ A blank sale. """
     TokenFactory = chain.get_contract_factory('ViewlySale')
-    deploy_txn_hash = TokenFactory.deploy(args=[True])  # isTestable_=True
+    deploy_txn_hash = TokenFactory.deploy(args=[multisig_addr, True])  # isTestable_=True
     contract_address = chain.wait.for_contract_address(deploy_txn_hash)
     return TokenFactory(address=contract_address)
 
@@ -136,7 +136,7 @@ def ending_round_one(running_round_one_buyers: Contract) -> Contract:
     return step_finalize_sale(running_round_one_buyers)
 
 @pytest.fixture
-def beneficiary(accounts) -> str:
+def owner(accounts) -> str:
     return accounts[0]
 
 @pytest.fixture
@@ -292,7 +292,7 @@ def test_claim(ending_round_one, customer):
     assert sale.call().balanceOf(customer) == should_receive
 
 
-def test_claimFail(ending_round_one, customer, beneficiary):
+def test_claimFail(ending_round_one, customer, owner):
     sale = ending_round_one
 
     # should not be able to claim 0 round
@@ -305,7 +305,7 @@ def test_claimFail(ending_round_one, customer, beneficiary):
 
     # should not be able to claim if haven't contributed
     with pytest.raises(TransactionFailed):
-        sale.transact({"from": beneficiary}).claim(1)
+        sale.transact({"from": owner}).claim(1)
 
     # should not be able to claim twice
     sale.transact({"from": customer}).claim(1)
@@ -416,7 +416,7 @@ def test_testing_methods_unavailable(chain):
 
     # production like contract
     TokenFactory = chain.get_contract_factory('ViewlySale')
-    deploy_txn_hash = TokenFactory.deploy(args=[False])  # isTestable_=False
+    deploy_txn_hash = TokenFactory.deploy(args=[multisig_addr, False])  # isTestable_=False
     contract_address = chain.wait.for_contract_address(deploy_txn_hash)
     sale = TokenFactory(address=contract_address)
 

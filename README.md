@@ -159,9 +159,15 @@ geth --testnet --etherbase "0x25b99234a1d2e37fe340e8f9046d0cf0d9558c58"
 *The etherbase account is the main account that will be creating the contract.*
 
 
-Then you can deploy the contract to given chain with:
+Then you can deploy the contract to testnet with given multisig address as
+beneficiary with:
 ```
-python deploy.py {ropsten|rinkeby|mainnet}
+python deploy.py ropsten "0xcbb09f94680f10887f1c358df9aea5c425a1f0b8"
+```
+
+Similarily, you can also deploy to other configured chains such as rinkeyb:
+```
+python deploy.py rinkeby "0xcbb09f94680f10887f1c358df9aea5c425a1f0b8"
 ```
 
 ## Contract Viewer
