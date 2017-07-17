@@ -126,12 +126,12 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     }
 
     modifier isRunning() {
-        if (state != State.Running) throw;
+        require(state == State.Running);
         _;
     }
 
     modifier notRunning() {
-        if (state == State.Running) throw;
+        require(state != State.Running);
         _;
     }
 
@@ -212,7 +212,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     function buyTokens() isRunning payable {
         assert(block.number >= roundStartBlock);
         assert(block.number < roundEndBlock);
-        if (msg.value == 0) throw;
+        require(msg.value > 0);
 
         // check if ETH cap is reached for this sale
         assert(add(mapEthSums[roundNumber], msg.value) < roundEthCap);
@@ -402,7 +402,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // and will not be accessible in the real sale contract.
 
     modifier mustBeTestable() {
-        if (isTestable != true) throw;
+        require(isTestable);
         _;
     }
 
