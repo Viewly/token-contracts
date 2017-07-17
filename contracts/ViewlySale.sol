@@ -273,9 +273,6 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         // see how much ETH was deposited by the user for this round
         uint etherSent = mapEthDeposits[roundNumber_][msg.sender];
         require(etherSent > 0);
-        if (etherSent == 0) {
-            return 0;
-        }
 
         // calculate the amount of tokens to claim
         uint128 price = wdiv(cast(mapTokenSums[roundNumber_]), cast(mapEthSums[roundNumber_]));
