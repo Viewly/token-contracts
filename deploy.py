@@ -48,15 +48,14 @@ def main():
         # Unlock the coinbase account
         web3.personal.unlockAccount(owner, 'test', duration=None)
 
-        # Random address on Ropsten testnet
-        # This address will receive ETH funds
-        # multisig_address = "0xcbb09f94680f10887f1c358df9aea5c425a1f0b8"
-        # print("Multisig address is", multisig_address)
+        # This address will receive ETH funds when secureEth() is called
+        multisig_address = sys.argv[2]
+        print("Multisig address is", multisig_address)
 
         # Deploy the ViewlySale contract
         txhash = ViewlySale.deploy(
             transaction={"from": owner},
-            args=[False]
+            args=[multisig_address, False]
         )
         print("Deploying crowdsale, tx hash is", txhash)
         receipt = check_succesful_tx(web3, txhash)

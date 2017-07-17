@@ -24,7 +24,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     //
     // Note: multisigAddr MUST implement a mechanism to transfer ERC-20 tokens,
     // otherwise all VIEW tokens sent to it will be permanently lost.
-    address public constant multisigAddr = 0x0;  // todo set this
+    address public multisigAddr;  // todo set this
 
     // supply and allocation
     DSToken public VIEW;
@@ -104,7 +104,9 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     );
 
 
-    function ViewlySale(bool isTestable_) {
+    function ViewlySale(address multisigAddr_, bool isTestable_) {
+        multisigAddr = multisigAddr_;
+
         // initialize the ERC-20 Token
         // is this a bad practice?
         // should the VIEW token be deployed by the

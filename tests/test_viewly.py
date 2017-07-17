@@ -29,7 +29,7 @@ rounds = {
 def viewly_sale(chain) -> Contract:
     """ A blank sale. """
     TokenFactory = chain.get_contract_factory('ViewlySale')
-    deploy_txn_hash = TokenFactory.deploy(args=[True])  # isTestable_=True
+    deploy_txn_hash = TokenFactory.deploy(args=[multisig_addr, True])  # isTestable_=True
     contract_address = chain.wait.for_contract_address(deploy_txn_hash)
     return TokenFactory(address=contract_address)
 
@@ -416,7 +416,7 @@ def test_testing_methods_unavailable(chain):
 
     # production like contract
     TokenFactory = chain.get_contract_factory('ViewlySale')
-    deploy_txn_hash = TokenFactory.deploy(args=[False])  # isTestable_=False
+    deploy_txn_hash = TokenFactory.deploy(args=[multisig_addr, False])  # isTestable_=False
     contract_address = chain.wait.for_contract_address(deploy_txn_hash)
     sale = TokenFactory(address=contract_address)
 
