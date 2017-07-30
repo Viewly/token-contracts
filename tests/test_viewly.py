@@ -13,14 +13,14 @@ rounds = {
     1: {
         'block_future_offset': 0,
         'duration': 5 * 24 * 3600 // 17,
-        'token_cap': 18_000_000,
-        'eth_cap': 18_000_000 // 300,  # 1 ETH = $300, 18M USD cap
+        'token_cap': to_wei(18_000_000, 'ether'),
+        'eth_cap': to_wei(18_000_000, 'ether') // 300,  # 1 ETH = $300, 18M USD cap
     },
     2: {
         'block_future_offset': 0,
         'duration': 5 * 24 * 3600 // 17,
-        'token_cap': 18_000_000,
-        'eth_cap': 18_000_000 // 300,  # 1 ETH = $300, 18M USD cap
+        'token_cap': to_wei(18_000_000, 'ether'),
+        'eth_cap': to_wei(18_000_000, 'ether') // 300,  # 1 ETH = $300, 18M USD cap
     }
 }
 
@@ -48,7 +48,7 @@ def step_start_sale(sale: Contract, round_num = 1) -> Contract:
         round_sale_duration,
         block_future_offset,
         round_token_cap,
-        to_wei(round_eth_cap, 'ether'),
+        round_eth_cap,
     )
 
     # state.Running
@@ -67,7 +67,7 @@ def step_start_sale(sale: Contract, round_num = 1) -> Contract:
         assert sale.call().totalSupply() > roundTokenCap
 
     # check that the eth Cap is correct
-    assert sale.call().roundEthCap() == to_wei(round_eth_cap, "ether")
+    assert sale.call().roundEthCap() == round_eth_cap
 
     return sale
 
@@ -177,14 +177,14 @@ def test_round_two(ending_round_one, web3, customer, customer2):
 
     # manual assertions based on hardcoded params in
     # step_start_sale and step_make_purchases
-    assert sale.call().totalSupply() == 2 * 18_000_000
+    assert sale.call().totalSupply() == 2 * 18_000_000 * 10**18
     assert sale.call().totalEth() == to_wei(40, 'ether')
     assert sale.call().mapEthDeposits(1, customer) == to_wei(10, 'ether')
     assert sale.call().mapEthDeposits(2, customer) == to_wei(10, 'ether')
     assert sale.call().mapEthSums(1) == to_wei(20, 'ether')
     assert sale.call().mapEthSums(2) == to_wei(20, 'ether')
-    assert sale.call().mapTokenSums(1) == 18_000_000
-    assert sale.call().mapTokenSums(2) == 18_000_000
+    assert sale.call().mapTokenSums(1) == 18_000_000 * 10**18
+    assert sale.call().mapTokenSums(2) == 18_000_000 * 10**18
 
 
 def test_buyTokensFail(viewly_sale, web3, customer):
@@ -288,7 +288,8 @@ def test_claim(ending_round_one, customer):
 
     # calculate if customer received correct amount of VIEW tokens
     round_eth_raised = sale.call().mapEthSums(1)
-    should_receive = to_wei(10, 'ether') / round_eth_raised * rounds[1]['token_cap']
+    should_receive = to_wei(10, 'ether') * rounds[1]['token_cap'] // round_eth_raised
+
     assert sale.call().balanceOf(customer) == should_receive
 
 

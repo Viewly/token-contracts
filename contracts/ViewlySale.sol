@@ -28,8 +28,8 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     // supply and allocation
     DSToken public VIEW;
-    uint128 public constant tokenCreationCap = 100000000; // 100_000_000
-    uint128 public constant mintMonthlyMax   = 2;         // 2% a month max
+    uint128 public constant tokenCreationCap = 100000000 * 10**18; // 100_000_000 tokens
+    uint128 public constant mintMonthlyMax   = 2;                  // 2% a month max
 
     // variables for current round set on round start
     uint8   public roundNumber;         // round 1,2,3...

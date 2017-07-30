@@ -67,8 +67,8 @@ def main():
         tx_hash = sale.transact().startSale(
             5 * 24 * 3600 // 17,
             0,
-            18_000_000,
-            to_wei(18_000_000 // 300, 'ether'),
+            to_wei(18_000_000, 'ether'),
+            to_wei(18_000_000 // 200, 'ether'),
         )
         check_succesful_tx(web3, tx_hash)
 
