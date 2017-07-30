@@ -12,13 +12,13 @@ multisig_addr = '0x0000000000000000000000000000000000000000'
 rounds = {
     1: {
         'block_future_offset': 0,
-        'duration': 5 * 24,
+        'duration': 5 * 24 * 3600 // 17,
         'token_cap': 18_000_000,
         'eth_cap': 18_000_000 // 300,  # 1 ETH = $300, 18M USD cap
     },
     2: {
         'block_future_offset': 0,
-        'duration': 5 * 24,
+        'duration': 5 * 24 * 3600 // 17,
         'token_cap': 18_000_000,
         'eth_cap': 18_000_000 // 300,  # 1 ETH = $300, 18M USD cap
     }

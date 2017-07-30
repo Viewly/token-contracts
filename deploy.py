@@ -65,7 +65,7 @@ def main():
         print("Initializing contracts")
         sale = ViewlySale(address=crowdsale_address)
         tx_hash = sale.transact().startSale(
-            5 * 24,
+            5 * 24 * 3600 // 17,
             0,
             18_000_000,
             to_wei(18_000_000 // 300, 'ether'),

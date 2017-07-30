@@ -35,7 +35,8 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     uint8   public roundNumber;         // round 1,2,3...
     uint128 public roundEthCap;         // ETH cap for this round
     uint128 public roundTokenCap;       // Token cap for this round
-    uint    public roundDurationHours;  // eg. 72 = 3 days
+    uint    public roundDurationBlocks; // 72 * 3600 // 17 = 15247 blocks
+                                        // =~ 3 days
     uint256 public roundStartBlock;     // startSale() block
     uint256 public roundEndBlock;       // roundStartTime + N days
 
@@ -144,7 +145,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // ----
 
     function startSale(
-        uint roundDurationHours_,
+        uint roundDurationBlocks_,
         uint256 blockFutureOffset,
         uint128 roundTokenCap_,
         uint128 roundEthCap_
@@ -154,7 +155,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         note
     {
         // sanity checks
-        require(roundDurationHours_ > 0);
+        require(roundDurationBlocks_ > 0);
         require(roundTokenCap_ > 0);
         require(roundEthCap_ > 0);
 
@@ -162,7 +163,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         roundEthCap = roundEthCap_;
 
         roundTokenCap = roundTokenCap_;
-        roundDurationHours = roundDurationHours_;
+        roundDurationBlocks = roundDurationBlocks_;
 
         // don't exceed the hard cap
         require(add(totalSupply(), roundTokenCap) < tokenCreationCap);
@@ -170,11 +171,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         // We want to be able to start the sale contract for a block slightly
         // in the future, so that the start time is accurately known
         roundStartBlock = add(block.number, blockFutureOffset);
-
-        // calculate roundEndBlock
-        uint blocksPerHour = mul(div(60, 17), 60);
-        uint blockNumDuration = mul(blocksPerHour, roundDurationHours);
-        roundEndBlock = add(roundStartBlock, blockNumDuration);
+        roundEndBlock = add(roundStartBlock, roundDurationBlocks);
 
         // start a new round
         roundNumber += 1;
