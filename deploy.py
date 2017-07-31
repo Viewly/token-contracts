@@ -31,19 +31,18 @@ def main():
 
     # Chain must be preconfigured in populus.json
     chain_name = sys.argv[1]
-    print("Chain is", chain_name)
-
     with project.get_chain(chain_name) as chain:
         # Load Populus contract proxy classes
         ViewlySale = chain.get_contract_factory('ViewlySale')
 
         web3 = chain.web3
-        print("Web3 provider is", web3.currentProvider)
+        print("Head block is %d on the %s chain" \
+              % (web3.eth.blockNumber, chain_name))
 
         # The address who will be the owner of the contracts
         owner = web3.eth.coinbase
         assert owner, "Make sure your node has coinbase account created"
-        print("Coinbase address is", owner)
+        print("Owner address is", owner)
 
         # Unlock the coinbase account
         web3.personal.unlockAccount(owner, 'test', duration=None)
@@ -60,7 +59,7 @@ def main():
         print("Deploying crowdsale, tx hash is", txhash)
         receipt = check_succesful_tx(web3, txhash)
         crowdsale_address = receipt["contractAddress"]
-        print("ViewlySale contract address is", crowdsale_address)
+        print("Contract address is", crowdsale_address)
 
         # Initialize the sale
         print("Initializing contracts")
