@@ -214,7 +214,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         require(msg.value > 0);
 
         // check if ETH cap is reached for this sale
-        require(add(mapEthSums[roundNumber], msg.value) < roundEthCap);
+        require(add(mapEthSums[roundNumber], msg.value) <= roundEthCap);
 
         // issue the claim for the tokens
         mapEthDeposits[roundNumber][msg.sender] += msg.value;
