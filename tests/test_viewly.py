@@ -187,38 +187,6 @@ def test_round_two(ending_round_one, web3, customer, customer2):
     assert sale.call().mapTokenSums(2) == 18_000_000 * 10**18
 
 
-def test_buyTokensFail(viewly_sale, web3, customer):
-    sale = viewly_sale
-
-    # sale is not running, so the purchase should fail
-    is_not_running(viewly_sale)
-    try:
-        web3.eth.sendTransaction({
-            "from": customer,
-            "to": sale.address,
-            "value": to_wei(10, "ether"),
-            "gas": 250000,
-        })
-        raise AssertionError(
-            "Buying tokens on closed sale should have failed")
-    except TransactionFailed:
-        pass
-
-def test_buyTokensFail2(running_round_one, web3, customer):
-    sale = running_round_one
-    # is_running(sale)
-
-    # user tries to buy more than available (ETH Cap reached)
-    msg_value = to_wei(100000, "ether")
-    assert sale.call().roundEthCap() < msg_value
-    with pytest.raises(TransactionFailed):
-        web3.eth.sendTransaction({
-            "from": customer,
-            "to": sale.address,
-            "value": msg_value,
-            "gas": 250000,
-        })
-
 def test_buyTokens(running_round_one, web3, customer, customer2):
     sale = running_round_one
     roundNumber = sale.call().roundNumber()
@@ -292,6 +260,38 @@ def test_buyTokens2(running_round_one, web3, customer, customer2):
     assert (purchase_1_eth + purchase_2_eth) == to_wei(100, "ether")
     assert sale.call().mapEthSums(round) == to_wei(100, "ether")
     assert sale.call().roundEthCap() == to_wei(100, "ether")
+
+def test_buyTokensFail(viewly_sale, web3, customer):
+    sale = viewly_sale
+
+    # sale is not running, so the purchase should fail
+    is_not_running(viewly_sale)
+    try:
+        web3.eth.sendTransaction({
+            "from": customer,
+            "to": sale.address,
+            "value": to_wei(10, "ether"),
+            "gas": 250000,
+        })
+        raise AssertionError(
+            "Buying tokens on closed sale should have failed")
+    except TransactionFailed:
+        pass
+
+def test_buyTokensFail2(running_round_one, web3, customer):
+    sale = running_round_one
+    # is_running(sale)
+
+    # user tries to buy more than available (ETH Cap reached)
+    msg_value = to_wei(100000, "ether")
+    assert sale.call().roundEthCap() < msg_value
+    with pytest.raises(TransactionFailed):
+        web3.eth.sendTransaction({
+            "from": customer,
+            "to": sale.address,
+            "value": msg_value,
+            "gas": 250000,
+        })
 
 
 def test_claim(ending_round_one, customer):
