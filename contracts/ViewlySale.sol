@@ -37,8 +37,8 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     uint128 public roundTokenCap;       // Token cap for this round
     uint    public roundDurationBlocks; // 72 * 3600 // 17 = 15247 blocks
                                         // =~ 3 days
-    uint256 public roundStartBlock;     // startSale() block
-    uint256 public roundEndBlock;       // roundStartTime + N days
+    uint    public roundStartBlock;     // startSale() block
+    uint    public roundEndBlock;       // roundStartTime + N days
 
     // outstanding token claims
     // mapEthDeposits[roundNumber][address] = sum(msg.value)
@@ -72,27 +72,27 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     event LogBuy(
         uint8 roundNumber,
         address buyer,
-        uint256 ethSent
+        uint ethSent
     );
 
     event LogClaimTokens(
         uint8 roundNumber,
         address buyer,
-        uint256 ethBurned,
+        uint ethBurned,
         uint128 tokensSent
     );
 
     event LogStartSale(
-        uint8   roundNumber,
-        uint256 roundStartBlock,
-        uint256 roundEndBlock,
+        uint8 roundNumber,
+        uint roundStartBlock,
+        uint roundEndBlock,
         uint128 roundTokenCap,
         uint128 roundEthCap
     );
 
     event LogEndSale(
         uint8 roundNumber,
-        uint256 totalSupply
+        uint totalSupply
     );
 
     event LogRegister(
@@ -101,7 +101,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     );
 
     event LogFreeze(
-        uint256 blockNum
+        uint blockNum
     );
 
 
@@ -146,7 +146,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     function startSale(
         uint roundDurationBlocks_,
-        uint256 blockFutureOffset,
+        uint blockFutureOffset,
         uint128 roundTokenCap_,
         uint128 roundEthCap_
     )
@@ -230,7 +230,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // -------
 
     // tokens issued from reserves + tokens issued in sale rounds
-    function totalSupply() returns(uint256) {
+    function totalSupply() returns(uint) {
         uint sum = 0;
         for (uint8 x = 0; x <= roundNumber; x++) {
             sum += mapTokenSums[x];
@@ -243,7 +243,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     }
 
     // all ETH raised trough rounds
-    function totalEth() returns(uint256) {
+    function totalEth() returns(uint) {
         uint sum = 0;
         for (uint8 x = 0; x <= roundNumber; x++) {
             sum += mapEthSums[x];
@@ -251,7 +251,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         return sum;
     }
 
-    function balanceOf(address address_) constant returns(uint256) {
+    function balanceOf(address address_) constant returns(uint) {
         return VIEW.balanceOf(address_);
     }
 
