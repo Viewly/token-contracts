@@ -31,14 +31,14 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     uint128 public constant tokenCreationCap = 100000000 ether;
     uint128 public constant mintMonthlyMax   = 2;                  // 2% a month max
 
-    // variables for current round set on round start
+    // variables for current sale round on startSaleRound
     uint8   public roundNumber;         // round 1,2,3...
-    uint128 public roundEthCap;         // ETH cap for round in WEI
-    uint128 public roundTokenCap;       // Token cap for round in WEI
+    uint128 public roundEthCap;         // ETH cap in WEI
+    uint128 public roundTokenCap;       // Token cap in WEI
     uint    public roundDurationBlocks; // 72 * 3600 // 17 = 15247 blocks
                                         // =~ 3 days
-    uint    public roundStartBlock;     // startSale() block
-    uint    public roundEndBlock;       // roundStartTime + N days
+    uint    public roundStartBlock;     // sale round start block
+    uint    public roundEndBlock;       // sale round end block
 
     // outstanding token claims
     // mapEthDeposits[roundNumber][address] = sum(msg.value)
@@ -82,7 +82,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         uint128 tokensSent
     );
 
-    event LogStartSale(
+    event LogStartSaleRound(
         uint8 roundNumber,
         uint roundStartBlock,
         uint roundEndBlock,
@@ -90,7 +90,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         uint128 roundEthCap
     );
 
-    event LogEndSale(
+    event LogEndSaleRound(
         uint8 roundNumber,
         uint totalSupply
     );
@@ -144,7 +144,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // SALE
     // ----
 
-    function startSale(
+    function startSaleRound(
         uint roundDurationBlocks_,
         uint blockFutureOffset,
         uint128 roundTokenCap_,
@@ -166,7 +166,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         // don't exceed the hard cap
         require(add(totalSupply(), roundTokenCap) <= tokenCreationCap);
 
-        // We want to be able to start the sale contract for a block slightly
+        // We want to be able to start the sale round for a block slightly
         // in the future, so that the start time is accurately known
         roundStartBlock = add(block.number, blockFutureOffset);
         roundEndBlock = add(roundStartBlock, roundDurationBlocks);
@@ -180,7 +180,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         // enable the sale
         state = State.Running;
 
-        LogStartSale(
+        LogStartSaleRound(
             roundNumber,
             roundStartBlock,
             roundEndBlock,
@@ -190,8 +190,8 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     }
 
-    // anyone can end the sale
-    function finalizeSale()
+    // anyone can end the sale round
+    function endSaleRound()
         isRunning
         note
     {
@@ -200,7 +200,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         // State.Done
         state = State.Done;
 
-        LogEndSale(
+        LogEndSaleRound(
             roundNumber,
             mapEthSums[roundNumber]
         );
@@ -211,7 +211,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         require(block.number < roundEndBlock);
         require(msg.value > 0);
 
-        // check if ETH cap is reached for this sale
+        // check ETH cap not reached for this sale round
         require(add(mapEthSums[roundNumber], msg.value) <= roundEthCap);
 
         // issue the claim for the tokens
@@ -258,7 +258,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // CLAIM
     // -----
 
-    // once the sale is ended, users can claim their share of tokens
+    // once the sale round is ended, users can claim their share of tokens
     function claim(uint8 roundNumber_) notRunning returns(uint128){
         // the round must had happened
         require(roundNumber_ > 0);
@@ -400,7 +400,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         _;
     }
 
-    // use this method to satisfy finalizeSale block requirement
+    // use this method to satisfy endSaleRound block requirement
     function collapseBlockTimes()
         mustBeTestable
         isRunning
