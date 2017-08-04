@@ -64,7 +64,7 @@ def main():
         # Initialize the sale
         print("Initializing contracts")
         sale = ViewlySale(address=crowdsale_address)
-        tx_hash = sale.transact().startSale(
+        tx_hash = sale.transact().startSaleRound(
             5 * 24 * 3600 // 17,
             0,
             to_wei(18_000_000, 'ether'),

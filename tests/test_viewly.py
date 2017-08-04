@@ -34,18 +34,18 @@ def viewly_sale(chain) -> Contract:
     return TokenFactory(address=contract_address)
 
 
-def step_start_sale(sale: Contract, round_num = 1) -> Contract:
+def step_start_round(sale: Contract, round_num = 1) -> Contract:
     assert is_not_running(sale)
 
-    # initialize the sale
+    # start the sale round
     r = rounds[round_num]
-    round_sale_duration = r['duration']
+    round_duration = r['duration']
     block_future_offset = r['block_future_offset']
     round_token_cap = r['token_cap']
     round_eth_cap = r['eth_cap']
 
-    sale.transact().startSale(
-        round_sale_duration,
+    sale.transact().startSaleRound(
+        round_duration,
         block_future_offset,
         round_token_cap,
         round_eth_cap,
@@ -78,7 +78,7 @@ def running_round_one(viewly_sale: Contract) -> Contract:
     A blank sale,
     with first round started.
     """
-    return step_start_sale(viewly_sale)
+    return step_start_round(viewly_sale)
 
 
 def step_make_purchases(sale: Contract,
@@ -114,12 +114,12 @@ def running_round_one_buyers(running_round_one: Contract,
 
 
 
-def step_finalize_sale(sale: Contract) -> Contract:
+def step_end_round(sale: Contract) -> Contract:
     assert is_running(sale)
 
-    # make the sale close-able
+    # make the round close-able
     sale.transact().collapseBlockTimes()
-    sale.transact().finalizeSale()
+    sale.transact().endSaleRound()
 
     assert is_not_running(sale)
 
@@ -133,7 +133,7 @@ def ending_round_one(running_round_one_buyers: Contract) -> Contract:
     with dummy buyers,
     with first round ended.
     """
-    return step_finalize_sale(running_round_one_buyers)
+    return step_end_round(running_round_one_buyers)
 
 @pytest.fixture
 def owner(accounts) -> str:
@@ -170,13 +170,13 @@ def test_round_one(ending_round_one):
 def test_round_two(ending_round_one, web3, customer, customer2):
     """ Test if additional rounds tally up correctly. """
     sale = ending_round_one
-    sale = step_start_sale(sale, round_num=2)
+    sale = step_start_round(sale, round_num=2)
     buyers = [customer, customer2]
     sale = step_make_purchases(sale, web3, buyers)
-    sale = step_finalize_sale(sale)
+    sale = step_end_round(sale)
 
     # manual assertions based on hardcoded params in
-    # step_start_sale and step_make_purchases
+    # step_start_round and step_make_purchases
     assert sale.call().totalSupply() == 18_000_100 * 10**18
     assert sale.call().totalEth() == to_wei(40, 'ether')
     assert sale.call().mapEthDeposits(1, customer) == to_wei(10, 'ether')
@@ -444,7 +444,7 @@ def test_testing_methods_unavailable(chain):
     sale = TokenFactory(address=contract_address)
 
     # initialize the sale
-    sale = step_start_sale(sale)
+    sale = step_start_round(sale)
     assert is_running(sale)
 
     # calling a test protected method should fail
