@@ -33,8 +33,8 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     // variables for current round set on round start
     uint8   public roundNumber;         // round 1,2,3...
-    uint128 public roundEthCap;         // ETH cap for this round
-    uint128 public roundTokenCap;       // Token cap for this round
+    uint128 public roundEthCap;         // ETH cap for round in WEI
+    uint128 public roundTokenCap;       // Token cap for round in WEI
     uint    public roundDurationBlocks; // 72 * 3600 // 17 = 15247 blocks
                                         // =~ 3 days
     uint    public roundStartBlock;     // startSale() block
@@ -159,14 +159,12 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         require(roundTokenCap_ > 0);
         require(roundEthCap_ > 0);
 
-        // this MUST be to_wei(x, 'ether')
         roundEthCap = roundEthCap_;
-
         roundTokenCap = roundTokenCap_;
         roundDurationBlocks = roundDurationBlocks_;
 
         // don't exceed the hard cap
-        require(add(totalSupply(), roundTokenCap) < tokenCreationCap);
+        require(add(totalSupply(), roundTokenCap) <= tokenCreationCap);
 
         // We want to be able to start the sale contract for a block slightly
         // in the future, so that the start time is accurately known
