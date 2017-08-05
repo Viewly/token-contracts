@@ -265,7 +265,7 @@ def test_buyTokensFail(viewly_sale, web3, customer):
     sale = viewly_sale
 
     # sale is not running, so the purchase should fail
-    is_not_running(viewly_sale)
+    assert is_not_running(viewly_sale)
     try:
         web3.eth.sendTransaction({
             "from": customer,
@@ -423,9 +423,7 @@ def test_mintedLastMonthSum(viewly_sale):
 # helpers
 # -------
 def is_running(sale):
-    assert sale.call().state() == 1
-    return True
+    return sale.call().state() == 1
 
 def is_not_running(sale):
-    assert sale.call().state() != 1
-    return True
+    return sale.call().state() != 1
