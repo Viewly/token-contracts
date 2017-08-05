@@ -220,7 +220,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // -------
 
     // tokens issued from reserves + tokens issued in sale rounds
-    function totalSupply() returns(uint) {
+    function totalSupply() constant returns(uint) {
         uint sum = 0;
         for (uint8 x = 0; x <= roundNumber; x++) {
             sum += mapTokenSums[x];
@@ -233,7 +233,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     }
 
     // all ETH raised trough rounds
-    function totalEth() returns(uint) {
+    function totalEth() constant returns(uint) {
         uint sum = 0;
         for (uint8 x = 0; x <= roundNumber; x++) {
             sum += mapEthSums[x];
