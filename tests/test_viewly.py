@@ -12,13 +12,13 @@ multisig_addr = '0x0000000000000000000000000000000000000000'
 rounds = {
     1: {
         'block_future_offset': 0,
-        'duration': 5 * 24 * 3600 // 17,
+        'duration': 10,
         'token_cap': to_wei(100, 'ether'),
-        'eth_cap': to_wei(100, 'ether'),  # 1 ETH = $300, 18M USD cap
+        'eth_cap': to_wei(100, 'ether'),
     },
     2: {
         'block_future_offset': 0,
-        'duration': 5 * 24 * 3600 // 17,
+        'duration': 10,
         'token_cap': to_wei(18_000_000, 'ether'),
         'eth_cap': to_wei(18_000_000, 'ether') // 300,  # 1 ETH = $300, 18M USD cap
     }
@@ -29,7 +29,7 @@ rounds = {
 def viewly_sale(chain) -> Contract:
     """ A blank sale. """
     TokenFactory = chain.get_contract_factory('ViewlySale')
-    deploy_txn_hash = TokenFactory.deploy(args=[multisig_addr, True])  # isTestable_=True
+    deploy_txn_hash = TokenFactory.deploy(args=[multisig_addr])
     contract_address = chain.wait.for_contract_address(deploy_txn_hash)
     return TokenFactory(address=contract_address)
 
@@ -114,26 +114,26 @@ def running_round_one_buyers(running_round_one: Contract,
 
 
 
-def step_end_round(sale: Contract) -> Contract:
+def step_end_round(sale: Contract, chain) -> Contract:
     assert is_running(sale)
 
-    # make the round close-able
-    sale.transact().collapseBlockTimes()
-    sale.transact().endSaleRound()
+    # fast-forward chain up to round end block
+    chain.wait.for_block(sale.call().roundEndBlock())
 
+    sale.transact().endSaleRound()
     assert is_not_running(sale)
 
     return sale
 
 @pytest.fixture()
-def ending_round_one(running_round_one_buyers: Contract) -> Contract:
+def ending_round_one(running_round_one_buyers: Contract, chain) -> Contract:
     """
     A blank sale,
     with first round started,
     with dummy buyers,
     with first round ended.
     """
-    return step_end_round(running_round_one_buyers)
+    return step_end_round(running_round_one_buyers, chain)
 
 @pytest.fixture
 def owner(accounts) -> str:
@@ -167,13 +167,13 @@ def test_round_one(ending_round_one):
     # magic happens here ^^
     pass
 
-def test_round_two(ending_round_one, web3, customer, customer2):
+def test_round_two(ending_round_one, web3, customer, customer2, chain):
     """ Test if additional rounds tally up correctly. """
     sale = ending_round_one
     sale = step_start_round(sale, round_num=2)
     buyers = [customer, customer2]
     sale = step_make_purchases(sale, web3, buyers)
-    sale = step_end_round(sale)
+    sale = step_end_round(sale, chain)
 
     # manual assertions based on hardcoded params in
     # step_start_round and step_make_purchases
@@ -429,24 +429,3 @@ def is_running(sale):
 def is_not_running(sale):
     assert sale.call().state() != 1
     return True
-
-
-# ViewlySale.isTesting
-# --------------------
-def test_testing_methods_unavailable(chain):
-    """ Testing helpers should not be callable
-    in a production like deployment. """
-
-    # production like contract
-    TokenFactory = chain.get_contract_factory('ViewlySale')
-    deploy_txn_hash = TokenFactory.deploy(args=[multisig_addr, False])  # isTestable_=False
-    contract_address = chain.wait.for_contract_address(deploy_txn_hash)
-    sale = TokenFactory(address=contract_address)
-
-    # initialize the sale
-    sale = step_start_round(sale)
-    assert is_running(sale)
-
-    # calling a test protected method should fail
-    with pytest.raises(TransactionFailed):
-        sale.transact().collapseBlockTimes()
