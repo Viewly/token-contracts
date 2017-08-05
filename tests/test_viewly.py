@@ -98,6 +98,9 @@ def test_init(viewly_sale):
     # test that the beneficiary account is correct
     assert sale.call().multisigAddr() == MULTISIG_ADDR
 
+    # test token suplly caps
+    assert sale.call().tokenCreationCap() == to_wei(100_000_000, 'ether')
+    assert sale.call().mintMonthlyCap() == to_wei(2_000_000, 'ether')
 
 def test_round_one(ending_round_one):
     # magic happens here ^^
@@ -308,39 +311,29 @@ def test_totalSupply(viewly_sale):
     pass
 
 
-def test_mintableTokenSupply(viewly_sale):
-    """ Check that we can really only mint 2% a month. """
-    sale = viewly_sale
-    hard_cap = sale.call().tokenCreationCap()
-    mintMonthlyMax = sale.call().mintMonthlyMax()
-
-    mintable_now = sale.call().mintableTokenAmount()
-    assert mintable_now == hard_cap * mintMonthlyMax // 100
-
 def test_mintReserve(viewly_sale):
     sale = viewly_sale
     to_mint = 10_000
 
     # sanity checks
-    mintableTokenAmount = sale.call().mintableTokenAmount()
-    mintable_now = mintableTokenAmount - sale.call().mintedLastMonthSum()
+    mintable_now = sale.call().mintMonthlyCap() - sale.call().mintedLastMonth()
     assert mintable_now > 0
     # since we haven't minted any tokens previously, the whole
     # monthly allocation should be mintable already
-    assert sale.call().mintableTokenAmount() == mintable_now
+    assert sale.call().mintMonthlyCap() == mintable_now
 
     # multisig addr should have the newly minted tokens
     balance_before = sale.call().balanceOf(MULTISIG_ADDR)
     sale.transact().mintReserve(to_mint)
     assert sale.call().balanceOf(MULTISIG_ADDR) == balance_before + to_mint
 
-def test_mintedLastMonthSum(viewly_sale):
+def test_mintedLastMonth(viewly_sale):
     sale = viewly_sale
-    assert sale.call().mintedLastMonthSum() == 0
+    assert sale.call().mintedLastMonth() == 0
 
     to_mint = 10_000
     step_mint_tokens(sale, to_mint)
-    assert sale.call().mintedLastMonthSum() == to_mint
+    assert sale.call().mintedLastMonth() == to_mint
 
 
 # -------
@@ -423,7 +416,7 @@ def step_end_round(sale: Contract, chain) -> Contract:
 
 def step_mint_tokens(sale, to_mint = 10_000):
     # check old values
-    minted_before = sale.call().mintedLastMonthSum()
+    minted_before = sale.call().mintedLastMonth()
     balance_before = sale.call().balanceOf(MULTISIG_ADDR)
 
     # mint new tokens
@@ -431,4 +424,4 @@ def step_mint_tokens(sale, to_mint = 10_000):
     assert sale.call().balanceOf(MULTISIG_ADDR) == balance_before + to_mint
 
     # amount should have been recorded properly
-    assert sale.call().mintedLastMonthSum() == minted_before + to_mint
+    assert sale.call().mintedLastMonth() == minted_before + to_mint
