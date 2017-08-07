@@ -7,70 +7,35 @@ from eth_utils import to_wei
 
 from ethereum.tester import TransactionFailed
 
-multisig_addr = '0x0000000000000000000000000000000000000000'
 
-rounds = {
+# -------------------
+# FIXTURES AND CONSTS
+# -------------------
+
+MULTISIG_ADDR = '0x0000000000000000000000000000000000000000'
+
+SALE_ROUNDS = {
     1: {
         'block_future_offset': 0,
-        'duration': 5 * 24 * 3600 // 17,
+        'duration': 10,
         'token_cap': to_wei(100, 'ether'),
-        'eth_cap': to_wei(100, 'ether'),  # 1 ETH = $300, 18M USD cap
+        'eth_cap': to_wei(100, 'ether'),
     },
     2: {
         'block_future_offset': 0,
-        'duration': 5 * 24 * 3600 // 17,
+        'duration': 10,
         'token_cap': to_wei(18_000_000, 'ether'),
         'eth_cap': to_wei(18_000_000, 'ether') // 300,  # 1 ETH = $300, 18M USD cap
     }
 }
 
-
 @pytest.fixture()
 def viewly_sale(chain) -> Contract:
     """ A blank sale. """
     TokenFactory = chain.get_contract_factory('ViewlySale')
-    deploy_txn_hash = TokenFactory.deploy(args=[multisig_addr, True])  # isTestable_=True
+    deploy_txn_hash = TokenFactory.deploy(args=[MULTISIG_ADDR])
     contract_address = chain.wait.for_contract_address(deploy_txn_hash)
     return TokenFactory(address=contract_address)
-
-
-def step_start_round(sale: Contract, round_num = 1) -> Contract:
-    assert is_not_running(sale)
-
-    # start the sale round
-    r = rounds[round_num]
-    round_duration = r['duration']
-    block_future_offset = r['block_future_offset']
-    round_token_cap = r['token_cap']
-    round_eth_cap = r['eth_cap']
-
-    sale.transact().startSaleRound(
-        round_duration,
-        block_future_offset,
-        round_token_cap,
-        round_eth_cap,
-    )
-
-    # state.Running
-    assert is_running(sale)
-
-    # check that values were initialized properly
-    assert sale.call().roundNumber() == round_num
-
-    # check that the funds were allocated correctly
-    roundTokenCap = sale.call().roundTokenCap()
-    assert sale.call().mapTokenSums(round_num) == roundTokenCap
-    if round_num == 1:
-        assert sale.call().totalSupply() == roundTokenCap
-    else:
-        # if this is a second round, we should have more supply now
-        assert sale.call().totalSupply() > roundTokenCap
-
-    # check that the eth Cap is correct
-    assert sale.call().roundEthCap() == round_eth_cap
-
-    return sale
-
 
 @pytest.fixture()
 def running_round_one(viewly_sale: Contract) -> Contract:
@@ -79,27 +44,6 @@ def running_round_one(viewly_sale: Contract) -> Contract:
     with first round started.
     """
     return step_start_round(viewly_sale)
-
-
-def step_make_purchases(sale: Contract,
-                        web3,
-                        buyers: list,
-                        amounts: list = None) -> Contract:
-
-    assert is_running(sale)
-
-    if not amounts:
-        amounts = [to_wei(10, 'ether') for _ in buyers]
-
-    for buyer, amount in zip(buyers, amounts):
-        web3.eth.sendTransaction({
-            "from": buyer,
-            "to": sale.address,
-            "value": amount,
-            "gas": 250000,
-        })
-
-    return sale
 
 @pytest.fixture()
 def running_round_one_buyers(running_round_one: Contract,
@@ -112,28 +56,15 @@ def running_round_one_buyers(running_round_one: Contract,
     buyers = [customer, customer2]
     return step_make_purchases(running_round_one, web3, buyers)
 
-
-
-def step_end_round(sale: Contract) -> Contract:
-    assert is_running(sale)
-
-    # make the round close-able
-    sale.transact().collapseBlockTimes()
-    sale.transact().endSaleRound()
-
-    assert is_not_running(sale)
-
-    return sale
-
 @pytest.fixture()
-def ending_round_one(running_round_one_buyers: Contract) -> Contract:
+def ending_round_one(running_round_one_buyers: Contract, chain) -> Contract:
     """
     A blank sale,
     with first round started,
     with dummy buyers,
     with first round ended.
     """
-    return step_end_round(running_round_one_buyers)
+    return step_end_round(running_round_one_buyers, chain)
 
 @pytest.fixture
 def owner(accounts) -> str:
@@ -146,6 +77,11 @@ def customer(accounts) -> str:
 @pytest.fixture
 def customer2(accounts) -> str:
     return accounts[2]
+
+
+# --------
+# TESTS
+# --------
 
 def test_init(viewly_sale):
     sale = viewly_sale
@@ -160,20 +96,20 @@ def test_init(viewly_sale):
     assert sale.call().state() == 0
 
     # test that the beneficiary account is correct
-    assert sale.call().multisigAddr() == multisig_addr
+    assert sale.call().multisigAddr() == MULTISIG_ADDR
 
 
 def test_round_one(ending_round_one):
     # magic happens here ^^
     pass
 
-def test_round_two(ending_round_one, web3, customer, customer2):
+def test_round_two(ending_round_one, web3, customer, customer2, chain):
     """ Test if additional rounds tally up correctly. """
     sale = ending_round_one
     sale = step_start_round(sale, round_num=2)
     buyers = [customer, customer2]
     sale = step_make_purchases(sale, web3, buyers)
-    sale = step_end_round(sale)
+    sale = step_end_round(sale, chain)
 
     # manual assertions based on hardcoded params in
     # step_start_round and step_make_purchases
@@ -265,7 +201,7 @@ def test_buyTokensFail(viewly_sale, web3, customer):
     sale = viewly_sale
 
     # sale is not running, so the purchase should fail
-    is_not_running(viewly_sale)
+    assert is_not_running(viewly_sale)
     try:
         web3.eth.sendTransaction({
             "from": customer,
@@ -299,7 +235,7 @@ def test_claim(ending_round_one, customer):
 
     # sanity checks
     assert sale.call().mapEthDeposits(1, customer) == to_wei(10, 'ether')
-    assert sale.call().mapTokenSums(1) == rounds[1]['token_cap']
+    assert sale.call().mapTokenSums(1) == SALE_ROUNDS[1]['token_cap']
     assert sale.call().mapEthSums(1) == to_wei(20, 'ether')
 
     # this user sent in 10 eth, should get 50% of token supply
@@ -310,7 +246,7 @@ def test_claim(ending_round_one, customer):
 
     # calculate if customer received correct amount of VIEW tokens
     round_eth_raised = sale.call().mapEthSums(1)
-    should_receive = to_wei(10, 'ether') * rounds[1]['token_cap'] // round_eth_raised
+    should_receive = to_wei(10, 'ether') * SALE_ROUNDS[1]['token_cap'] // round_eth_raised
 
     assert sale.call().balanceOf(customer) == should_receive
 
@@ -338,7 +274,7 @@ def test_claimFail(ending_round_one, customer, owner):
 def test_secureEth(ending_round_one, web3):
     sale = ending_round_one
 
-    multisig_balance = web3.eth.getBalance(multisig_addr)
+    multisig_balance = web3.eth.getBalance(MULTISIG_ADDR)
     assert multisig_balance == 0
 
     contract_balance = web3.eth.getBalance(sale.address)
@@ -347,7 +283,7 @@ def test_secureEth(ending_round_one, web3):
     # drain the contract
     sale.transact().secureEth()
 
-    multisig_balance = web3.eth.getBalance(multisig_addr)
+    multisig_balance = web3.eth.getBalance(MULTISIG_ADDR)
     assert multisig_balance == to_wei(20, 'ether')
 
     contract_balance = web3.eth.getBalance(sale.address)
@@ -381,19 +317,6 @@ def test_mintableTokenSupply(viewly_sale):
     mintable_now = sale.call().mintableTokenAmount()
     assert mintable_now == hard_cap * mintMonthlyMax // 100
 
-
-def step_mint_tokens(sale, to_mint = 10_000):
-    # check old values
-    minted_before = sale.call().mintedLastMonthSum()
-    balance_before = sale.call().balanceOf(multisig_addr)
-
-    # mint new tokens
-    sale.transact().mintReserve(to_mint)
-    assert sale.call().balanceOf(multisig_addr) == balance_before + to_mint
-
-    # amount should have been recorded properly
-    assert sale.call().mintedLastMonthSum() == minted_before + to_mint
-
 def test_mintReserve(viewly_sale):
     sale = viewly_sale
     to_mint = 10_000
@@ -407,9 +330,9 @@ def test_mintReserve(viewly_sale):
     assert sale.call().mintableTokenAmount() == mintable_now
 
     # multisig addr should have the newly minted tokens
-    balance_before = sale.call().balanceOf(multisig_addr)
+    balance_before = sale.call().balanceOf(MULTISIG_ADDR)
     sale.transact().mintReserve(to_mint)
-    assert sale.call().balanceOf(multisig_addr) == balance_before + to_mint
+    assert sale.call().balanceOf(MULTISIG_ADDR) == balance_before + to_mint
 
 def test_mintedLastMonthSum(viewly_sale):
     sale = viewly_sale
@@ -420,33 +343,92 @@ def test_mintedLastMonthSum(viewly_sale):
     assert sale.call().mintedLastMonthSum() == to_mint
 
 
-# helpers
 # -------
+# HELPERS
+# -------
+
 def is_running(sale):
-    assert sale.call().state() == 1
-    return True
+    return sale.call().state() == 1
 
 def is_not_running(sale):
-    assert sale.call().state() != 1
-    return True
+    return sale.call().state() != 1
 
+def step_start_round(sale: Contract, round_num = 1) -> Contract:
+    assert is_not_running(sale)
 
-# ViewlySale.isTesting
-# --------------------
-def test_testing_methods_unavailable(chain):
-    """ Testing helpers should not be callable
-    in a production like deployment. """
+    # start the sale round
+    r = SALE_ROUNDS[round_num]
+    round_duration = r['duration']
+    block_future_offset = r['block_future_offset']
+    round_token_cap = r['token_cap']
+    round_eth_cap = r['eth_cap']
 
-    # production like contract
-    TokenFactory = chain.get_contract_factory('ViewlySale')
-    deploy_txn_hash = TokenFactory.deploy(args=[multisig_addr, False])  # isTestable_=False
-    contract_address = chain.wait.for_contract_address(deploy_txn_hash)
-    sale = TokenFactory(address=contract_address)
+    sale.transact().startSaleRound(
+        round_duration,
+        block_future_offset,
+        round_token_cap,
+        round_eth_cap,
+    )
 
-    # initialize the sale
-    sale = step_start_round(sale)
+    # state.Running
     assert is_running(sale)
 
-    # calling a test protected method should fail
-    with pytest.raises(TransactionFailed):
-        sale.transact().collapseBlockTimes()
+    # check that values were initialized properly
+    assert sale.call().roundNumber() == round_num
+
+    # check that the funds were allocated correctly
+    roundTokenCap = sale.call().roundTokenCap()
+    assert sale.call().mapTokenSums(round_num) == roundTokenCap
+    if round_num == 1:
+        assert sale.call().totalSupply() == roundTokenCap
+    else:
+        # if this is a second round, we should have more supply now
+        assert sale.call().totalSupply() > roundTokenCap
+
+    # check that the eth Cap is correct
+    assert sale.call().roundEthCap() == round_eth_cap
+
+    return sale
+
+def step_make_purchases(sale: Contract,
+                        web3,
+                        buyers: list,
+                        amounts: list = None) -> Contract:
+
+    assert is_running(sale)
+
+    if not amounts:
+        amounts = [to_wei(10, 'ether') for _ in buyers]
+
+    for buyer, amount in zip(buyers, amounts):
+        web3.eth.sendTransaction({
+            "from": buyer,
+            "to": sale.address,
+            "value": amount,
+            "gas": 250000,
+        })
+
+    return sale
+
+def step_end_round(sale: Contract, chain) -> Contract:
+    assert is_running(sale)
+
+    # fast-forward chain up to round end block
+    chain.wait.for_block(sale.call().roundEndBlock())
+
+    sale.transact().endSaleRound()
+    assert is_not_running(sale)
+
+    return sale
+
+def step_mint_tokens(sale, to_mint = 10_000):
+    # check old values
+    minted_before = sale.call().mintedLastMonthSum()
+    balance_before = sale.call().balanceOf(MULTISIG_ADDR)
+
+    # mint new tokens
+    sale.transact().mintReserve(to_mint)
+    assert sale.call().balanceOf(MULTISIG_ADDR) == balance_before + to_mint
+
+    # amount should have been recorded properly
+    assert sale.call().mintedLastMonthSum() == minted_before + to_mint

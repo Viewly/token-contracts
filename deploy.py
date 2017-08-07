@@ -54,7 +54,7 @@ def main():
         # Deploy the ViewlySale contract
         txhash = ViewlySale.deploy(
             transaction={"from": owner},
-            args=[multisig_address, False]
+            args=[multisig_address]
         )
         print("Deploying crowdsale, tx hash is", txhash)
         receipt = check_succesful_tx(web3, txhash)

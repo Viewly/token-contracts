@@ -11,10 +11,6 @@ import "./lib/auth.sol";
 
 contract ViewlySale is DSAuth, DSMath, DSNote {
 
-    // this is useful for automated testing only
-    // live contract SHOULD have this value set to false
-    bool isTestable = false;
-
     // Where should secureETH() proxy the ETH raised?
     // Where should mintReserve() send the bounty/team vesting tokens?
     //
@@ -105,7 +101,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     );
 
 
-    function ViewlySale(address multisigAddr_, bool isTestable_) {
+    function ViewlySale(address multisigAddr_) {
         multisigAddr = multisigAddr_;
 
         // initialize the ERC-20 Token
@@ -116,10 +112,6 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         assert(VIEW.totalSupply() == 0);
         assert(VIEW.owner() == address(this));
         assert(VIEW.authority() == DSAuthority(0));
-
-        if (isTestable_ == true) {
-            isTestable = true;
-        }
     }
 
     // fallback function
@@ -386,27 +378,4 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         uint multiplier = mul(tokenCreationCap, mintMonthlyMax);
         return div(multiplier, 100);
     }
-
-
-    //
-    // TEST HELPERS
-    // ------------
-    //
-    // These methods are to be used in the contract test suite
-    // and will not be accessible in the real sale contract.
-
-    modifier mustBeTestable() {
-        require(isTestable);
-        _;
-    }
-
-    // use this method to satisfy endSaleRound block requirement
-    function collapseBlockTimes()
-        mustBeTestable
-        isRunning
-        auth
-    {
-        roundEndBlock = add(roundStartBlock, 1);
-    }
-
 }
