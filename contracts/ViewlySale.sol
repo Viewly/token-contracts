@@ -11,8 +11,7 @@ import "./lib/auth.sol";
 
 contract ViewlySale is DSAuth, DSMath, DSNote {
 
-    // Where should secureETH() proxy the ETH raised?
-    // Where should mintReserve() send the bounty/team vesting tokens?
+    // Address where secureETH() and mintReserve send tokens or ethers.
     //
     // This address should be the DSMultisig80 contract address.
     // Ideally, withdrawals from this address require a quorum agreement from
@@ -43,13 +42,12 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // sums of ether raised per round
     mapping (uint8 => uint) public mapEthSums;
 
-    // total supply of tokens issued every round
+    // total supply of tokens issued in round
     mapping (uint8 => uint) public mapTokenSums;
 
     // registration addresses
     mapping (address => string) public mapViewlyKeys;
 
-    // state machine
     enum State {
         Pending,
         Running,
@@ -57,7 +55,6 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     }
     State public state = State.Pending;
 
-    // minting history
     struct Mintage {
         uint amount;
         uint timestamp;
@@ -105,17 +102,12 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         multisigAddr = multisigAddr_;
 
         // initialize the ERC-20 Token
-        // is this a bad practice?
-        // should the VIEW token be deployed by the
-        // maintainer, and passed as address here?
         VIEW = new DSToken("VIEW");
         assert(VIEW.totalSupply() == 0);
         assert(VIEW.owner() == address(this));
         assert(VIEW.authority() == DSAuthority(0));
     }
 
-    // fallback function
-    // todo - gas issue: see http://bit.ly/2tMqjhf
     function () payable {
         buyTokens();
     }
@@ -189,7 +181,6 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     {
         require(block.number > roundEndBlock);
 
-        // State.Done
         state = State.Done;
 
         LogEndSaleRound(
@@ -249,7 +240,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // CLAIM
     // -----
 
-    // once the sale round is ended, users can claim their share of tokens
+    // once the sale round is ended users can claim their share of tokens
     function claim(uint8 roundNumber_) notRunning returns(uint128){
         // the round must had happened
         require(roundNumber_ > 0);
