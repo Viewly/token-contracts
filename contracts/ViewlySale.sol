@@ -98,20 +98,6 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     );
 
 
-    function ViewlySale(address multisigAddr_) {
-        multisigAddr = multisigAddr_;
-
-        // initialize the ERC-20 Token
-        VIEW = new DSToken("VIEW");
-        assert(VIEW.totalSupply() == 0);
-        assert(VIEW.owner() == address(this));
-        assert(VIEW.authority() == DSAuthority(0));
-    }
-
-    function () payable {
-        buyTokens();
-    }
-
     modifier isRunning() {
         require(state == State.Running);
         _;
@@ -123,6 +109,15 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     }
 
 
+    function ViewlySale(address multisigAddr_) {
+        multisigAddr = multisigAddr_;
+
+        // initialize the ERC-20 Token
+        VIEW = new DSToken("VIEW");
+        assert(VIEW.totalSupply() == 0);
+        assert(VIEW.owner() == address(this));
+        assert(VIEW.authority() == DSAuthority(0));
+    }
 
     //
     // SALE
@@ -204,35 +199,8 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         LogBuy(roundNumber, msg.sender, msg.value);
     }
 
-
-
-    //
-    // HELPERS
-    // -------
-
-    // tokens issued from reserves + tokens issued in sale rounds
-    function totalTokenSupply() constant returns(uint supply) {
-        supply = 0;
-        for (uint8 x = 0; x <= roundNumber; x++) {
-            supply += tokenSupplyInRound[x];
-        }
-        supply += totalMinted();
-    }
-
-    function erc20TokenSupply() constant returns(uint) {
-        return VIEW.totalSupply();
-    }
-
-    // all ETH raised trough rounds
-    function totalEthRaised() constant returns(uint eth) {
-        eth = 0;
-        for (uint8 x = 0; x <= roundNumber; x++) {
-            eth += ethRaisedInRound[x];
-        }
-    }
-
-    function balanceOf(address address_) constant returns(uint) {
-        return VIEW.balanceOf(address_);
+    function () payable {
+        buyTokens();
     }
 
 
@@ -326,6 +294,36 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
         // log mintage
         mintHistory.push(Mintage(toMint, block.timestamp));
+    }
+
+
+    //
+    // HELPERS
+    // -------
+
+    // tokens issued from reserves + tokens issued in sale rounds
+    function totalTokenSupply() constant returns(uint supply) {
+        supply = 0;
+        for (uint8 x = 0; x <= roundNumber; x++) {
+            supply += tokenSupplyInRound[x];
+        }
+        supply += totalMinted();
+    }
+
+    function erc20TokenSupply() constant returns(uint) {
+        return VIEW.totalSupply();
+    }
+
+    // all ETH raised trough rounds
+    function totalEthRaised() constant returns(uint eth) {
+        eth = 0;
+        for (uint8 x = 0; x <= roundNumber; x++) {
+            eth += ethRaisedInRound[x];
+        }
+    }
+
+    function balanceOf(address address_) constant returns(uint) {
+        return VIEW.balanceOf(address_);
     }
 
     function mintedLastMonth() constant returns(uint minted) {
