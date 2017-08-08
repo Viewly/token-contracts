@@ -90,7 +90,7 @@ def test_init(viewly_sale):
     assert sale.call().roundNumber() == 0
 
     # initial supply should be 0
-    assert sale.call().totalSupply() == 0
+    assert sale.call().totalTokenSupply() == 0
 
     # state.Pending
     assert sale.call().state() == 0
@@ -116,14 +116,14 @@ def test_round_two(ending_round_one, web3, customer, customer2, chain):
 
     # manual assertions based on hardcoded params in
     # step_start_round and step_make_purchases
-    assert sale.call().totalSupply() == 18_000_100 * 10**18
-    assert sale.call().totalEth() == to_wei(40, 'ether')
-    assert sale.call().mapEthDeposits(1, customer) == to_wei(10, 'ether')
-    assert sale.call().mapEthDeposits(2, customer) == to_wei(10, 'ether')
-    assert sale.call().mapEthSums(1) == to_wei(20, 'ether')
-    assert sale.call().mapEthSums(2) == to_wei(20, 'ether')
-    assert sale.call().mapTokenSums(1) == 100 * 10**18
-    assert sale.call().mapTokenSums(2) == 18_000_000 * 10**18
+    assert sale.call().totalTokenSupply() == 18_000_100 * 10**18
+    assert sale.call().totalEthRaised() == to_wei(40, 'ether')
+    assert sale.call().ethDeposits(1, customer) == to_wei(10, 'ether')
+    assert sale.call().ethDeposits(2, customer) == to_wei(10, 'ether')
+    assert sale.call().ethRaisedInRound(1) == to_wei(20, 'ether')
+    assert sale.call().ethRaisedInRound(2) == to_wei(20, 'ether')
+    assert sale.call().tokenSupplyInRound(1) == 100 * 10**18
+    assert sale.call().tokenSupplyInRound(2) == 18_000_000 * 10**18
 
 
 def test_buyTokens(running_round_one, web3, customer, customer2):
@@ -140,9 +140,9 @@ def test_buyTokens(running_round_one, web3, customer, customer2):
     })
 
     # balances should update correctly
-    user_deposit = sale.call().mapEthDeposits(roundNumber, customer)
+    user_deposit = sale.call().ethDeposits(roundNumber, customer)
     assert user_deposit == msg_value
-    assert sale.call().mapEthSums(roundNumber) == msg_value
+    assert sale.call().ethRaisedInRound(roundNumber) == msg_value
 
     # the event should have triggered
     events = sale.pastEvents("LogBuy").get()
@@ -162,9 +162,9 @@ def test_buyTokens(running_round_one, web3, customer, customer2):
     })
 
     # balances should add up correctly
-    user_deposit2 = sale.call().mapEthDeposits(roundNumber, customer2)
+    user_deposit2 = sale.call().ethDeposits(roundNumber, customer2)
     assert user_deposit2 == msg_value2
-    assert sale.call().mapEthSums(roundNumber) == sum([msg_value, msg_value2])
+    assert sale.call().ethRaisedInRound(roundNumber) == sum([msg_value, msg_value2])
 
     # make another purchase from re-used account
     web3.eth.sendTransaction({
@@ -175,7 +175,7 @@ def test_buyTokens(running_round_one, web3, customer, customer2):
     })
 
     # balances should update correctly
-    user_deposit = sale.call().mapEthDeposits(roundNumber, customer)
+    user_deposit = sale.call().ethDeposits(roundNumber, customer)
     assert user_deposit == 2 * msg_value
 
 # test buying tokens up to full roundEthCap amount
@@ -194,10 +194,10 @@ def test_buyTokens2(running_round_one, web3, customer, customer2):
         "to": sale.address,
     })
 
-    purchase_1_eth = sale.call().mapEthDeposits(round, customer)
-    purchase_2_eth = sale.call().mapEthDeposits(round, customer2)
+    purchase_1_eth = sale.call().ethDeposits(round, customer)
+    purchase_2_eth = sale.call().ethDeposits(round, customer2)
     assert (purchase_1_eth + purchase_2_eth) == to_wei(100, "ether")
-    assert sale.call().mapEthSums(round) == to_wei(100, "ether")
+    assert sale.call().ethRaisedInRound(round) == to_wei(100, "ether")
     assert sale.call().roundEthCap() == to_wei(100, "ether")
 
 def test_buyTokensFail(viewly_sale, web3, customer):
@@ -237,18 +237,18 @@ def test_claim(ending_round_one, customer):
     sale = ending_round_one
 
     # sanity checks
-    assert sale.call().mapEthDeposits(1, customer) == to_wei(10, 'ether')
-    assert sale.call().mapTokenSums(1) == SALE_ROUNDS[1]['token_cap']
-    assert sale.call().mapEthSums(1) == to_wei(20, 'ether')
+    assert sale.call().ethDeposits(1, customer) == to_wei(10, 'ether')
+    assert sale.call().tokenSupplyInRound(1) == SALE_ROUNDS[1]['token_cap']
+    assert sale.call().ethRaisedInRound(1) == to_wei(20, 'ether')
 
     # this user sent in 10 eth, should get 50% of token supply
     sale.transact({"from": customer}).claim(1)
 
     # the new deposit balance should be empty
-    assert sale.call().mapEthDeposits(1, customer) == 0
+    assert sale.call().ethDeposits(1, customer) == 0
 
     # calculate if customer received correct amount of VIEW tokens
-    round_eth_raised = sale.call().mapEthSums(1)
+    round_eth_raised = sale.call().ethRaisedInRound(1)
     should_receive = to_wei(10, 'ether') * SALE_ROUNDS[1]['token_cap'] // round_eth_raised
 
     assert sale.call().balanceOf(customer) == should_receive
@@ -293,21 +293,21 @@ def test_secureEth(ending_round_one, web3):
     assert contract_balance == 0
 
 
-def test_totalEth(running_round_one_buyers):
+def test_totalEthRaised(running_round_one_buyers):
     sale = running_round_one_buyers
 
     # by default, running_round_one_buyers will make 2x 10 ETH deposits
-    assert sale.call().totalEth() == to_wei(10*2, 'ether')
+    assert sale.call().totalEthRaised() == to_wei(10*2, 'ether')
 
 
-def test_totalSupply(viewly_sale):
+def test_totalTokenSupply(viewly_sale):
     # start a round
     # make a test purchase
     # end the round
     # claim the tokens
     # issue some reserved tokens
-    # call VIEW.totalSupply()
-    # call ViewlySale.totalSupply()
+    # call VIEW.totalTokenSupply()
+    # call ViewlySale.totalTokenSupply()
     pass
 
 
@@ -371,12 +371,12 @@ def step_start_round(sale: Contract, round_num = 1) -> Contract:
 
     # check that the funds were allocated correctly
     roundTokenCap = sale.call().roundTokenCap()
-    assert sale.call().mapTokenSums(round_num) == roundTokenCap
+    assert sale.call().tokenSupplyInRound(round_num) == roundTokenCap
     if round_num == 1:
-        assert sale.call().totalSupply() == roundTokenCap
+        assert sale.call().totalTokenSupply() == roundTokenCap
     else:
         # if this is a second round, we should have more supply now
-        assert sale.call().totalSupply() > roundTokenCap
+        assert sale.call().totalTokenSupply() > roundTokenCap
 
     # check that the eth Cap is correct
     assert sale.call().roundEthCap() == round_eth_cap

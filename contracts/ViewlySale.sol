@@ -37,16 +37,16 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     uint    public roundEndBlock;       // sale round end block
 
     // ether sent in round, by contributor
-    mapping (uint8 => mapping (address => uint)) public mapEthDeposits;
+    mapping (uint8 => mapping (address => uint)) public ethDeposits;
 
     // sums of ether raised per round
-    mapping (uint8 => uint) public mapEthSums;
+    mapping (uint8 => uint) public ethRaisedInRound;
 
     // total supply of tokens issued in round
-    mapping (uint8 => uint) public mapTokenSums;
+    mapping (uint8 => uint) public tokenSupplyInRound;
 
     // registration addresses
-    mapping (address => string) public mapViewlyKeys;
+    mapping (address => string) public viewlyKeys;
 
     enum State {
         Pending,
@@ -148,7 +148,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         roundDurationBlocks = roundDurationBlocks_;
 
         // don't exceed the hard cap
-        require(add(totalSupply(), roundTokenCap) <= tokenCreationCap);
+        require(add(totalTokenSupply(), roundTokenCap) <= tokenCreationCap);
 
         // We want to be able to start the sale round for a block slightly
         // in the future, so that the start time is accurately known
@@ -159,7 +159,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         roundNumber += 1;
 
         // allocate tokens from this round upfront
-        mapTokenSums[roundNumber] = roundTokenCap;
+        tokenSupplyInRound[roundNumber] = roundTokenCap;
 
         // enable the sale
         state = State.Running;
@@ -185,7 +185,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
         LogEndSaleRound(
             roundNumber,
-            mapEthSums[roundNumber]
+            ethRaisedInRound[roundNumber]
         );
     }
 
@@ -195,11 +195,11 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         require(msg.value > 0);
 
         // check ETH cap not reached for this sale round
-        require(add(mapEthSums[roundNumber], msg.value) <= roundEthCap);
+        require(add(ethRaisedInRound[roundNumber], msg.value) <= roundEthCap);
 
         // issue the claim for the tokens
-        mapEthDeposits[roundNumber][msg.sender] += msg.value;
-        mapEthSums[roundNumber] += msg.value;
+        ethDeposits[roundNumber][msg.sender] += msg.value;
+        ethRaisedInRound[roundNumber] += msg.value;
 
         LogBuy(roundNumber, msg.sender, msg.value);
     }
@@ -211,23 +211,23 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // -------
 
     // tokens issued from reserves + tokens issued in sale rounds
-    function totalSupply() constant returns(uint sum) {
-        sum = 0;
+    function totalTokenSupply() constant returns(uint supply) {
+        supply = 0;
         for (uint8 x = 0; x <= roundNumber; x++) {
-            sum += mapTokenSums[x];
+            supply += tokenSupplyInRound[x];
         }
-        sum += mintedTotal();
+        supply += totalMinted();
     }
 
-    function erc20Supply() constant returns(uint) {
+    function erc20TokenSupply() constant returns(uint) {
         return VIEW.totalSupply();
     }
 
     // all ETH raised trough rounds
-    function totalEth() constant returns(uint sum) {
-        sum = 0;
+    function totalEthRaised() constant returns(uint eth) {
+        eth = 0;
         for (uint8 x = 0; x <= roundNumber; x++) {
-            sum += mapEthSums[x];
+            eth += ethRaisedInRound[x];
         }
     }
 
@@ -247,17 +247,17 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         require(roundNumber_ <= roundNumber);
 
         // there should be funds in this round
-        require(mapEthSums[roundNumber_] > 0);
+        require(ethRaisedInRound[roundNumber_] > 0);
 
         // claimant should have sent ether in this round
-        uint etherSent = mapEthDeposits[roundNumber_][msg.sender];
+        uint etherSent = ethDeposits[roundNumber_][msg.sender];
         require(etherSent > 0);
 
         uint128 tokens = calculateTokensRewardFor(etherSent, roundNumber_);
         assert(tokens > 0);
 
         // burn the deposit
-        mapEthDeposits[roundNumber_][msg.sender] = 0;
+        ethDeposits[roundNumber_][msg.sender] = 0;
 
         // mint the new tokens
         VIEW.mintTo(msg.sender, tokens);
@@ -268,10 +268,10 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     }
 
     // takes a hex encoded public key
-    function registerViewlyAddr(string pubKey) {
+    function registerViewlyAddress(string pubKey) {
         // (length == 54) -> VIEW7ab...xYz ?
         require(bytes(pubKey).length <= 64);
-        mapViewlyKeys[msg.sender] = pubKey;
+        viewlyKeys[msg.sender] = pubKey;
         LogRegister(msg.sender, pubKey);
     }
 
@@ -316,7 +316,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         }
 
         // don't forget about the hard cap
-        uint availableSupply = sub(tokenCreationCap, totalSupply());
+        uint availableSupply = sub(tokenCreationCap, totalTokenSupply());
         if (toMint > availableSupply) {
             toMint = availableSupply;
         }
@@ -328,21 +328,21 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         mintHistory.push(Mintage(toMint, block.timestamp));
     }
 
-    function mintedLastMonth() constant returns(uint sumMinted) {
+    function mintedLastMonth() constant returns(uint minted) {
         uint monthAgo = block.timestamp - 30 days;
 
-        sumMinted = 0;
+        minted = 0;
         for(uint8 x = 0; x < mintHistory.length; x++) {
             if (mintHistory[x].timestamp > monthAgo) {
-                sumMinted += mintHistory[x].amount;
+                minted += mintHistory[x].amount;
             }
         }
     }
 
-    function mintedTotal() constant returns(uint sumMinted) {
-        sumMinted = 0;
+    function totalMinted() constant returns(uint minted) {
+        minted = 0;
         for(uint8 x = 0; x < mintHistory.length; x++) {
-            sumMinted += mintHistory[x].amount;
+            minted += mintHistory[x].amount;
         }
     }
 
@@ -350,8 +350,8 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     function calculateTokensRewardFor(uint etherSent, uint8 roundNumber)
         private constant returns(uint128 tokensReward)
     {
-        uint128 totalEtherInRound = cast(mapEthSums[roundNumber]);
-        uint128 totalTokensInRound = cast(mapTokenSums[roundNumber]);
+        uint128 totalEtherInRound = cast(ethRaisedInRound[roundNumber]);
+        uint128 totalTokensInRound = cast(tokenSupplyInRound[roundNumber]);
         uint128 tokensShare = wdiv(cast(etherSent), totalEtherInRound);
         tokensReward = wmul(tokensShare, totalTokensInRound);
     }
