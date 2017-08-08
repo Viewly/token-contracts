@@ -310,10 +310,6 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         supply += totalMinted();
     }
 
-    function erc20TokenSupply() constant returns(uint) {
-        return VIEW.totalSupply();
-    }
-
     // all ETH raised trough rounds
     function totalEthRaised() constant returns(uint eth) {
         eth = 0;
