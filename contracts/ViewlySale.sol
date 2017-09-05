@@ -23,8 +23,8 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     // supply and allocation
     DSToken public VIEW;
-    // absolute hard cap of token supply
-    uint128 public constant tokenCreationCap = 100000000 ether;
+    // absolute hard cap of token supply (1 Billion)
+    uint128 public constant tokenCreationCap = 1000000000 ether;
     // 2% per month mintable token cap
     uint128 public constant mintMonthlyCap = wmul(tokenCreationCap, 0.02 ether);
 

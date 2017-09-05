@@ -99,8 +99,8 @@ def test_init(viewly_sale):
     assert sale.call().multisigAddr() == MULTISIG_ADDR
 
     # test token suplly caps
-    assert sale.call().tokenCreationCap() == to_wei(100_000_000, 'ether')
-    assert sale.call().mintMonthlyCap() == to_wei(2_000_000, 'ether')
+    assert sale.call().tokenCreationCap() == to_wei(1_000_000_000, 'ether')
+    assert sale.call().mintMonthlyCap() == to_wei(20_000_000, 'ether')
 
 def test_round_one(ending_round_one):
     # magic happens here ^^
