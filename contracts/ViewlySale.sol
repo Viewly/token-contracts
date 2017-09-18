@@ -109,14 +109,9 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     }
 
 
-    function ViewlySale(address multisigAddr_) {
+    function ViewlySale(DSToken view_, address multisigAddr_) {
+        VIEW = view_;
         multisigAddr = multisigAddr_;
-
-        // initialize the ERC-20 Token
-        VIEW = new DSToken("VIEW");
-        assert(VIEW.totalSupply() == 0);
-        assert(VIEW.owner() == address(this));
-        assert(VIEW.authority() == DSAuthority(0));
     }
 
     //

@@ -6,6 +6,7 @@ from web3.contract import Contract
 from eth_utils import to_wei
 
 from ethereum.tester import TransactionFailed
+from populus.chain.base import BaseChain
 
 
 # -------------------
@@ -29,13 +30,24 @@ SALE_ROUNDS = {
     }
 }
 
+def deploy_contract(chain: BaseChain, contract_name: str, args=[]) -> Contract:
+    # deploy contract on chain with coinbase and optional init args
+    factory = chain.get_contract_factory(contract_name)
+    deploy_tx_hash = factory.deploy(args=args)
+    contract_address = chain.wait.for_contract_address(deploy_tx_hash)
+    return factory(address=contract_address)
+
 @pytest.fixture()
-def viewly_sale(chain) -> Contract:
-    """ A blank sale. """
-    TokenFactory = chain.get_contract_factory('ViewlySale')
-    deploy_txn_hash = TokenFactory.deploy(args=[MULTISIG_ADDR])
-    contract_address = chain.wait.for_contract_address(deploy_txn_hash)
-    return TokenFactory(address=contract_address)
+def view_token(chain: BaseChain) -> Contract:
+    """ A blank and running VIEW token contract. """
+    return deploy_contract(chain, 'DSToken', args=['VIEW'])
+
+@pytest.fixture()
+def viewly_sale(chain: BaseChain, view_token: Contract) -> Contract:
+    """ A blank sale contract. """
+    viewly_sale = deploy_contract(chain, 'ViewlySale', args=[view_token.address, MULTISIG_ADDR])
+    view_token.transact().setOwner(viewly_sale.address)
+    return viewly_sale
 
 @pytest.fixture()
 def running_round_one(viewly_sale: Contract) -> Contract:
