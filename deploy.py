@@ -33,17 +33,17 @@ def main():
         check_succesful_tx(web3, tx)
         print('ViewToken has authorithy set')
 
-        print('Deploying ViewlySale')
-        multisig_address = sys.argv[2]
-        sale = deploy_contract(chain, owner, 'ViewlySale', [view_token.address, multisig_address])
-        print('ViewlySale address is', sale.address)
+        print('Deploying ViewlySeedSale')
+        beneficiary = sys.argv[2]
+        sale = deploy_contract(chain, owner, 'ViewlySeedSale', [view_token.address, beneficiary])
+        print('ViewlySeedSale address is', sale.address)
         authority_permit_any(chain, view_auth, sale.address, view_token.address)
-        print('ViewlySale is permitted to use ViewToken')
+        print('ViewlySeedSale is permitted to use ViewToken')
 
         print('Writing ABIs to ./build')
         dump_abi(view_auth, 'build/view_auth_abi.json')
         dump_abi(view_token, 'build/view_token_abi.json')
-        dump_abi(sale, 'build/viewly_sale_abi.json')
+        dump_abi(sale, 'build/viewly_seed_sale_abi.json')
 
         print('All done!')
 
