@@ -7,11 +7,32 @@ import "./lib/math.sol";
 import "./lib/token.sol";
 import "./lib/auth.sol";
 
-// Viewly seed token sale contract
+/* Viewly seed token sale contract, where buyers send ethers to receive ERC-20
+ * VIEW tokens in return. It features:
+ * - instant token payback when eth is sent
+ * - hard-coded ETH contributions and VIEW token hard-caps
+ * - sale start time and duration is set after deploy
+ * - sale can be ended anytime after start
+ * - deposits can be collected any time after sale starts
+ *
+ * Amount of VIEW tokens send back to buyers decreases linearly: early buyers
+ * get bonus tokens over last buyer. Bonus is maximal at the beginning (15%) and
+ * gradually lowers as deposits are sent in. It is finally reduced to zero as
+ * eth cap is reached. Token bonus also applies inside a single purchase:
+ * even the first buyer gets lower average bonus if sends in more ethers. If
+ * first buyer sends in 4000 eth (eth cap), his average bonus will be half of
+ * max bonus because his purchase spans from max bonus to 0 bonus (end of sale).
+ *
+ * The sale always reaches eth contributions and token caps simultaneously.
+ * Average amount of tokens per eth sent will always be the same
+ * (and equal to TOKEN_CAP/ETH_CAP).
+ */
 contract ViewlySeedSale is DSAuth, DSMath {
 
     uint constant public ethCap   =         4000 ether;   // ether hard-cap
     uint constant public tokenCap = 10 * 1000000 ether;   // token hard-cap
+    uint constant public bonus    =         0.15 ether;   // bonus of tokens early buyers
+                                                          // get over last buyers
 
     DSToken public VIEW;              // VIEW token contract
     address public beneficiary;       // destination to collect eth deposits
@@ -95,7 +116,6 @@ contract ViewlySeedSale is DSAuth, DSMath {
       endBlock += add(endBlock, _blocks);
     }
 
-    // deposited ethers can be collected any time
     function collectEth() auth {
       require(this.balance > 0);
 
@@ -111,17 +131,14 @@ contract ViewlySeedSale is DSAuth, DSMath {
     }
 
     function buyTokens() saleRunning inRunningBlock ethSent payable {
-      // update deposits and tokens bought
+      uint128 tokensBought = calcTokensForPurchase(msg.value, totalEthDeposited);
       ethDeposits[msg.sender] = add(msg.value, ethDeposits[msg.sender]);
       totalEthDeposited = add(msg.value, totalEthDeposited);
-      uint128 tokensBought = calculateTokensFor(msg.value);
       totalTokensBought = add(tokensBought, totalTokensBought);
 
-      // check caps are respected
       require(totalEthDeposited <= ethCap);
       require(totalTokensBought <= tokenCap);
 
-      // return tokens
       VIEW.mint(tokensBought);
       VIEW.transfer(msg.sender, tokensBought);
 
@@ -133,12 +150,37 @@ contract ViewlySeedSale is DSAuth, DSMath {
     }
 
 
-    // PRIVATE FUNCTIONS //
+    // PRIVATE //
 
-    function calculateTokensFor(uint ethSent)
-    private constant returns(uint128 tokens)
+    uint128 constant averageTokensPerEth = wdiv(cast(tokenCap), cast(ethCap));
+    uint128 constant endingTokensPerEth = wdiv(2 * averageTokensPerEth, cast(2 ether + bonus));
+
+    // calculate number of tokens buyer get when sending 'ethSent' ethers
+    // after 'ethDepostiedSoFar` already reeived in the sale
+    function calcTokensForPurchase(uint ethSent, uint ethDepositedSoFar)
+        private
+        constant
+        returns (uint128 tokens)
     {
-      // ethSent / ethCap * tokenCap
-      return cast(div(mul(ethSent, tokenCap), ethCap));
+        uint128 tokensPerEthAtStart = calcTokensPerEth(cast(ethDepositedSoFar));
+        uint128 tokensPerEthAtEnd = calcTokensPerEth(cast(add(ethDepositedSoFar, ethSent)));
+        uint128 averageTokensPerEth = wadd(tokensPerEthAtStart, tokensPerEthAtEnd) / 2;
+
+        // = ethSent * averageTokensPerEthInThisPurchase
+        return wmul(cast(ethSent), averageTokensPerEth);
+    }
+
+    // return tokensPerEth for 'nthEther' of total contribution (ethCap)
+    function calcTokensPerEth(uint128 nthEther)
+        private
+        constant
+        returns (uint128)
+    {
+        uint128 shareOfSale = wdiv(nthEther, cast(ethCap));
+        uint128 shareOfBonus = wsub(1 ether, shareOfSale);
+        uint128 currentBonus = wmul(shareOfBonus, cast(bonus));
+
+        // = endingTokensPerEth * (1 + bonus * shareOfBonus)
+        return wmul(endingTokensPerEth, wadd(1 ether, currentBonus));
     }
 }
