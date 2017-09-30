@@ -29,12 +29,12 @@ import "./lib/auth.sol";
  */
 contract ViewlySeedSale is DSAuth, DSMath {
 
-    uint constant public ethCap   =         4000 ether;   // ether hard-cap
-    uint constant public tokenCap = 10 * 1000000 ether;   // token hard-cap
-    uint constant public bonus    =         0.15 ether;   // bonus of tokens early buyers
-                                                          // get over last buyers
+    uint constant public ETH_CAP =           4000 ether;   // ether hard-cap
+    uint constant public TOKEN_CAP = 10 * 1000000 ether;   // token hard-cap
+    uint constant public BONUS =             0.15 ether;   // bonus of tokens early buyers
+                                                           // get over last buyers
 
-    DSToken public VIEW;              // VIEW token contract
+    DSToken public viewToken;         // VIEW token contract
     address public beneficiary;       // destination to collect eth deposits
     uint public startBlock;           // start block of sale
     uint public endBlock;             // end block of sale
@@ -75,91 +75,87 @@ contract ViewlySeedSale is DSAuth, DSMath {
 
     // check current block is inside closed interval [startBlock, endBlock]
     modifier inRunningBlock() {
-      require(block.number >= startBlock);
-      require(block.number < endBlock);
-      _;
+        require(block.number >= startBlock);
+        require(block.number < endBlock);
+        _;
     }
     // check sender has sent some ethers
     modifier ethSent() { require(msg.value > 0); _; }
 
 
-    function ViewlySeedSale(DSToken _view, address _beneficiary) {
-        VIEW = _view;
-        beneficiary = _beneficiary;
+    // PUBLIC //
+
+    function ViewlySeedSale(DSToken viewToken_, address beneficiary_) {
+        viewToken = viewToken_;
+        beneficiary = beneficiary_;
     }
 
-    // AUTHORIZATION REQUIRED //
+    function() payable {
+        buyTokens();
+    }
 
-    function startSale(
-      uint _duration,
-      uint _blockOffset
-    ) auth salePending {
-        require(_duration > 0);
-        require(_blockOffset >= 0);
+    function buyTokens() saleRunning inRunningBlock ethSent payable {
+        uint128 tokensBought = calcTokensForPurchase(msg.value, totalEthDeposited);
+        ethDeposits[msg.sender] = add(msg.value, ethDeposits[msg.sender]);
+        totalEthDeposited = add(msg.value, totalEthDeposited);
+        totalTokensBought = add(tokensBought, totalTokensBought);
 
-        startBlock = add(block.number, _blockOffset);
-        endBlock   = add(startBlock, _duration);
+        require(totalEthDeposited <= ETH_CAP);
+        require(totalTokensBought <= TOKEN_CAP);
+
+        viewToken.mint(tokensBought);
+        viewToken.transfer(msg.sender, tokensBought);
+
+        LogBuy(msg.sender, msg.value, tokensBought);
+    }
+
+    function totalEthRaised() view returns (uint) {
+        return add(this.balance, totalEthCollected);
+    }
+
+
+    // AUTH REQUIRED //
+
+    function startSale(uint duration, uint blockOffset) auth salePending {
+        require(duration > 0);
+        require(blockOffset >= 0);
+
+        startBlock = add(block.number, blockOffset);
+        endBlock   = add(startBlock, duration);
         state      = State.Running;
 
         LogStartSale(startBlock, endBlock);
     }
 
     function endSale() auth saleRunning {
-      state = State.Ended;
+        state = State.Ended;
 
-      LogEndSale(totalEthDeposited, totalTokensBought);
+        LogEndSale(totalEthDeposited, totalTokensBought);
     }
 
-    function extendSale(uint _blocks) auth saleRunning {
-      require(_blocks > 0);
+    function extendSale(uint blocks) auth saleRunning {
+        require(blocks > 0);
 
-      endBlock += add(endBlock, _blocks);
+        endBlock += add(endBlock, blocks);
     }
 
     function collectEth() auth {
-      require(this.balance > 0);
+        require(this.balance > 0);
 
-      totalEthCollected = add(totalEthCollected, this.balance);
-      beneficiary.transfer(this.balance);
-    }
-
-
-    // PUBLIC FUNCTIONS //
-
-    function totalEthRaised() returns(uint) {
-      return add(this.balance, totalEthCollected);
-    }
-
-    function buyTokens() saleRunning inRunningBlock ethSent payable {
-      uint128 tokensBought = calcTokensForPurchase(msg.value, totalEthDeposited);
-      ethDeposits[msg.sender] = add(msg.value, ethDeposits[msg.sender]);
-      totalEthDeposited = add(msg.value, totalEthDeposited);
-      totalTokensBought = add(tokensBought, totalTokensBought);
-
-      require(totalEthDeposited <= ethCap);
-      require(totalTokensBought <= tokenCap);
-
-      VIEW.mint(tokensBought);
-      VIEW.transfer(msg.sender, tokensBought);
-
-      LogBuy(msg.sender, msg.value, tokensBought);
-    }
-
-    function () payable {
-      buyTokens();
+        totalEthCollected = add(totalEthCollected, this.balance);
+        beneficiary.transfer(this.balance);
     }
 
 
     // PRIVATE //
 
-    uint128 constant averageTokensPerEth = wdiv(cast(tokenCap), cast(ethCap));
-    uint128 constant endingTokensPerEth = wdiv(2 * averageTokensPerEth, cast(2 ether + bonus));
+    uint128 constant averageTokensPerEth = wdiv(cast(TOKEN_CAP), cast(ETH_CAP));
+    uint128 constant endingTokensPerEth = wdiv(2 * averageTokensPerEth, cast(2 ether + BONUS));
 
     // calculate number of tokens buyer get when sending 'ethSent' ethers
     // after 'ethDepostiedSoFar` already reeived in the sale
     function calcTokensForPurchase(uint ethSent, uint ethDepositedSoFar)
-        private
-        constant
+        private view
         returns (uint128 tokens)
     {
         uint128 tokensPerEthAtStart = calcTokensPerEth(cast(ethDepositedSoFar));
@@ -170,17 +166,16 @@ contract ViewlySeedSale is DSAuth, DSMath {
         return wmul(cast(ethSent), averageTokensPerEth);
     }
 
-    // return tokensPerEth for 'nthEther' of total contribution (ethCap)
+    // return tokensPerEth for 'nthEther' of total contribution (ETH_CAP)
     function calcTokensPerEth(uint128 nthEther)
-        private
-        constant
+        private view
         returns (uint128)
     {
-        uint128 shareOfSale = wdiv(nthEther, cast(ethCap));
+        uint128 shareOfSale = wdiv(nthEther, cast(ETH_CAP));
         uint128 shareOfBonus = wsub(1 ether, shareOfSale);
-        uint128 currentBonus = wmul(shareOfBonus, cast(bonus));
+        uint128 actualBonus = wmul(shareOfBonus, cast(BONUS));
 
-        // = endingTokensPerEth * (1 + bonus * shareOfBonus)
-        return wmul(endingTokensPerEth, wadd(1 ether, currentBonus));
+        // = endingTokensPerEth * (1 + shareOfBonus * BONUS)
+        return wmul(endingTokensPerEth, wadd(1 ether, actualBonus));
     }
 }

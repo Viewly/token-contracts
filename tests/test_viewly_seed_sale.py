@@ -79,7 +79,7 @@ def beneficiary(accounts) -> str:
 def test_init(chain, token, beneficiary):
     sale = deploy_contract(chain, 'ViewlySeedSale', args=[token.address, beneficiary])
 
-    assert sale.call().VIEW() == token.address
+    assert sale.call().viewToken() == token.address
     assert sale.call().beneficiary() == beneficiary
 
 def test_start_sale(web3, sale):
@@ -88,8 +88,8 @@ def test_start_sale(web3, sale):
     expected_end_block = web3.eth.blockNumber + BLOCK_OFFSET + DURATION
 
     assert sale.call().state() == 1
-    assert sale.call().ethCap() == ETH_CAP
-    assert sale.call().tokenCap() == TOKEN_CAP
+    assert sale.call().ETH_CAP() == ETH_CAP
+    assert sale.call().TOKEN_CAP() == TOKEN_CAP
     assert sale.call().startBlock() == expected_start_block
     assert sale.call().endBlock() == expected_end_block
 
