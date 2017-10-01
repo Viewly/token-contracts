@@ -108,7 +108,7 @@ def test_end_sale(chain: BaseChain, running_sale, customer, beneficiary):
     assert end_event['totalEthDeposited'] == ETH_CAP
     assert end_event['totalTokensBought'] == approx(TOKEN_CAP)
 
-def test_collect_eth_and_total_eth_raised(chain: BaseChain, running_sale, customer, beneficiary):
+def test_collect_eth_and_total_eth_deposited(chain: BaseChain, running_sale, customer, beneficiary):
     sale = running_sale
 
     # buy some token on sale
@@ -124,7 +124,7 @@ def test_collect_eth_and_total_eth_raised(chain: BaseChain, running_sale, custom
     # buy some more
     send_eth_to_sale(chain, sale, customer, to_wei(30, 'ether'))
     assert chain.web3.eth.getBalance(sale.address) == to_wei(30, 'ether')
-    assert sale.call().totalEthRaised() == to_wei(40, 'ether')
+    assert sale.call().totalEthDeposited() == to_wei(40, 'ether')
 
 def test_buy(chain, web3, token, sale, customer):
     sale.transact().startSale(DURATION, 0)
