@@ -82,10 +82,8 @@ contract ViewlySeedSale is DSAuth, DSMath {
         uint totalTokensBought
     );
 
-    modifier salePending() { require(state == State.Pending); _; }
-    modifier saleRunning() { require(state == State.Running); _; }
-    modifier saleSucceeded() { require(state == State.Succeeded); _; }
-    modifier saleFailed() { require(state == State.Failed); _; }
+    // require given state of sale
+    modifier saleIn(State state_) { require(state_ == state); _; }
 
     // check current block is inside closed interval [startBlock, endBlock]
     modifier inRunningBlock() {
@@ -108,7 +106,7 @@ contract ViewlySeedSale is DSAuth, DSMath {
         buyTokens();
     }
 
-    function buyTokens() saleRunning inRunningBlock ethSent payable {
+    function buyTokens() saleIn(State.Running) inRunningBlock ethSent payable {
         uint128 tokensBought = calcTokensForPurchase(msg.value, totalEthDeposited);
         ethDeposits[msg.sender] = add(msg.value, ethDeposits[msg.sender]);
         totalEthDeposited = add(msg.value, totalEthDeposited);
@@ -123,7 +121,7 @@ contract ViewlySeedSale is DSAuth, DSMath {
         LogBuy(msg.sender, msg.value, tokensBought);
     }
 
-    function claimRefund() saleFailed {
+    function claimRefund() saleIn(State.Failed) {
       require(ethDeposits[msg.sender] > 0);
       require(ethRefunds[msg.sender] == 0);
 
@@ -138,7 +136,7 @@ contract ViewlySeedSale is DSAuth, DSMath {
 
     // AUTH REQUIRED //
 
-    function startSale(uint duration, uint blockOffset) auth salePending {
+    function startSale(uint duration, uint blockOffset) auth saleIn(State.Pending) {
         require(duration > 0);
         require(blockOffset >= 0);
 
@@ -149,7 +147,7 @@ contract ViewlySeedSale is DSAuth, DSMath {
         LogStartSale(startBlock, endBlock);
     }
 
-    function endSale() auth saleRunning {
+    function endSale() auth saleIn(State.Running) {
         if (totalEthDeposited >= MIN_FUNDING)
           state = State.Succeeded;
         else
@@ -158,7 +156,7 @@ contract ViewlySeedSale is DSAuth, DSMath {
         LogEndSale(state == State.Succeeded, totalEthDeposited, totalTokensBought);
     }
 
-    function extendSale(uint blocks) auth saleRunning {
+    function extendSale(uint blocks) auth saleIn(State.Running) {
         require(blocks > 0);
 
         endBlock += add(endBlock, blocks);
