@@ -109,10 +109,6 @@ contract ViewlySeedSale is DSAuth, DSMath {
         LogBuy(msg.sender, msg.value, tokensBought);
     }
 
-    function totalEthRaised() view returns (uint) {
-        return add(this.balance, totalEthCollected);
-    }
-
 
     // AUTH REQUIRED //
 
