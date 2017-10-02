@@ -66,6 +66,11 @@ contract ViewlySeedSale is DSAuth, DSMath {
         uint tokensBought
     );
 
+    event LogRefund(
+        address buyer,
+        uint ethRefund
+    );
+
     event LogStartSale(
         uint startBlock,
         uint endBlock
@@ -122,10 +127,12 @@ contract ViewlySeedSale is DSAuth, DSMath {
       require(ethDeposits[msg.sender] > 0);
       require(ethRefunds[msg.sender] == 0);
 
-      uint ethToRefund = ethDeposits[msg.sender];
-      ethRefunds[msg.sender] = ethToRefund;
-      totalEthRefunded = add(ethToRefund, totalEthRefunded);
-      msg.sender.transfer(ethToRefund);
+      uint ethRefund = ethDeposits[msg.sender];
+      ethRefunds[msg.sender] = ethRefund;
+      totalEthRefunded = add(ethRefund, totalEthRefunded);
+      msg.sender.transfer(ethRefund);
+
+      LogRefund(msg.sender, ethRefund);
     }
 
 

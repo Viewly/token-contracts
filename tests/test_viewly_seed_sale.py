@@ -29,12 +29,16 @@ def send_eth_to_sale(chain, sale, user, eth_to_send):
         'gas': 250000,
     })
 
-def assert_last_buy_event(sale, eth_sent, tokens_bought, customer=None):
+def assert_last_buy_event(sale, buyer, eth_sent, tokens_bought):
     event = sale.pastEvents('LogBuy').get()[-1]['args']
+    assert event['buyer'] == buyer
     assert event['ethDeposit'] == eth_sent
     assert event['tokensBought'] == approx(tokens_bought)
-    if customer:
-        assert event['buyer'] == customer
+
+def assert_last_refund_event(sale, buyer, eth_refund):
+    event = sale.pastEvents('LogRefund').get()[-1]['args']
+    assert event['buyer'] == buyer
+    assert event['ethRefund'] == eth_refund
 
 def assert_end_sale_event(sale, success, total_eth, total_tokens=None):
     event = sale.pastEvents('LogEndSale').get()[0]['args']
@@ -133,6 +137,7 @@ def test_end_sale_failed_and_refund(chain: BaseChain, token, running_sale, custo
     assert sale.call().totalEthRefunded() == eth_sent
     assert sale.call().ethRefunds(customer) == eth_sent
     assert chain.web3.eth.getBalance(sale.address) == 0
+    assert_last_refund_event(sale, customer, eth_sent)
 
     # if customer retries to claim a refund it should fail
     with pytest.raises(TransactionFailed):
@@ -181,17 +186,17 @@ def test_buy(chain, web3, token, sale, customer):
     # customer should receive expected tokens
     assert token.call().balanceOf(customer) == approx(expected_tokens)
 
-    assert_last_buy_event(sale, MAX_FUNDING, MAX_TOKENS, customer)
+    assert_last_buy_event(sale, customer, MAX_FUNDING, MAX_TOKENS)
 
 def test_buy_multiple_times_with_bonuses(chain: BaseChain, running_sale, customer):
     sale = running_sale
     half_eth_cap = to_wei(2000, 'ether')
 
     send_eth_to_sale(chain, sale, customer, half_eth_cap)
-    assert_last_buy_event(sale, half_eth_cap, to_wei(5174418.605, 'ether'), customer)
+    assert_last_buy_event(sale, customer, half_eth_cap, to_wei(5174418.605, 'ether'))
 
     send_eth_to_sale(chain, sale, customer, half_eth_cap)
-    assert_last_buy_event(sale, half_eth_cap, to_wei(4825581.395, 'ether'), customer)
+    assert_last_buy_event(sale, customer, half_eth_cap, to_wei(4825581.395, 'ether'))
 
     assert sale.call().totalEthDeposited() == MAX_FUNDING
     assert sale.call().totalTokensBought() == approx(MAX_TOKENS)
@@ -200,16 +205,16 @@ def test_buy_multiple_in_diverse_amounts(chain: BaseChain, running_sale, custome
     sale = running_sale
 
     send_eth_to_sale(chain, sale, customer, to_wei(111, 'milli'))
-    assert_last_buy_event(sale, to_wei(111, 'milli'), to_wei(296.8599279, 'ether'))
+    assert_last_buy_event(sale, customer, to_wei(111, 'milli'), to_wei(296.8599279, 'ether'))
 
     send_eth_to_sale(chain, sale, customer, to_wei(2322, 'ether'))
-    assert_last_buy_event(sale, to_wei(2322, 'ether'), to_wei(5974875.023, 'ether'))
+    assert_last_buy_event(sale, customer, to_wei(2322, 'ether'), to_wei(5974875.023, 'ether'))
 
     send_eth_to_sale(chain, sale, customer, to_wei(45, 'ether'))
-    assert_last_buy_event(sale, to_wei(45, 'ether'), to_wei(111147.6022, 'ether'))
+    assert_last_buy_event(sale, customer, to_wei(45, 'ether'), to_wei(111147.6022, 'ether'))
 
     send_eth_to_sale(chain, sale, customer, to_wei(1632889, 'milli'))
-    assert_last_buy_event(sale, to_wei(1632889, 'milli'), to_wei(3913680.515, 'ether'))
+    assert_last_buy_event(sale, customer, to_wei(1632889, 'milli'), to_wei(3913680.515, 'ether'))
 
     assert sale.call().totalEthDeposited() == MAX_FUNDING
     assert sale.call().totalTokensBought() == approx(MAX_TOKENS)
