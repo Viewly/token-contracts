@@ -10,28 +10,31 @@ import "./lib/auth.sol";
 /* Viewly seed token sale contract, where buyers send ethers to receive ERC-20
  * VIEW tokens in return. It features:
  * - instant token payback when eth is sent
- * - hard-coded ETH contributions and VIEW token hard-caps
+ * - max funding and max VIEW tokens hard-caps
+ * - min funding requirement (else deposits can be reclaimed)
  * - sale start time and duration is set after deploy
  * - sale can be ended anytime after start
- * - deposits can be collected any time after sale starts
+ * - deposits can be collected any time after min funding is reached
  *
  * Amount of VIEW tokens send back to buyers decreases linearly: early buyers
- * get bonus tokens over last buyer. Bonus is maximal at the beginning (15%) and
- * gradually lowers as deposits are sent in. It is finally reduced to zero as
- * eth cap is reached. Token bonus also applies inside a single purchase:
- * even the first buyer gets lower average bonus if sends in more ethers. If
- * first buyer sends in 4000 eth (eth cap), his average bonus will be half of
- * max bonus because his purchase spans from max bonus to 0 bonus (end of sale).
+ * get bonus tokens over late buyers. Bonus is maximal at the beginning (15%)
+ * and gradually lowers as deposits are sent in. It is finally reduced to zero
+ * as max funding cap is reached. Token bonus also applies inside a single
+ * purchase: even the first buyer gets lower average bonus if sends in more
+ * ethers. If first buyer sends in 4000 eth (eth cap), his average bonus will be
+ * half of max bonus because his purchase spans from max bonus to 0 bonus (end
+ * of sale).
  *
- * The sale always reaches eth contributions and token caps simultaneously.
+ * The sale always reaches max funding and token caps simultaneously.
  * Average amount of tokens per eth sent will always be the same
- * (and equal to TOKEN_CAP/ETH_CAP).
+ * (and equal to MAX_TOKENS/MAX_FUNDING).
  */
 contract ViewlySeedSale is DSAuth, DSMath {
 
-    uint constant public ETH_CAP =           4000 ether;   // ether hard-cap
-    uint constant public TOKEN_CAP = 10 * 1000000 ether;   // token hard-cap
-    uint constant public BONUS =             0.15 ether;   // bonus of tokens early buyers
+    uint constant public MAX_FUNDING =        4000 ether;  // max funding hard-cap
+    uint constant public MIN_FUNDING =        1000 ether;  // min funding requirement
+    uint constant public MAX_TOKENS = 10 * 1000000 ether;  // token hard-cap
+    uint constant public BONUS =              0.15 ether;  // bonus of tokens early buyers
                                                            // get over last buyers
 
     DSToken public viewToken;         // VIEW token contract
@@ -42,14 +45,18 @@ contract ViewlySeedSale is DSAuth, DSMath {
     uint public totalEthDeposited;    // sums of ether raised
     uint public totalTokensBought;    // total tokens issued on sale
     uint public totalEthCollected;    // total eth collected from sale
+    uint public totalEthRefunded;     // total eth refunded after a failed sale
 
     // buyers ether deposits
     mapping (address => uint) public ethDeposits;
+    // ether refunds after a failed sale
+    mapping (address => uint) public ethRefunds;
 
     enum State {
         Pending,
         Running,
-        Ended
+        Succeeded,
+        Failed
     }
     State public state = State.Pending;
 
@@ -59,19 +66,24 @@ contract ViewlySeedSale is DSAuth, DSMath {
         uint tokensBought
     );
 
+    event LogRefund(
+        address buyer,
+        uint ethRefund
+    );
+
     event LogStartSale(
         uint startBlock,
         uint endBlock
     );
 
     event LogEndSale(
+        bool success,
         uint totalEthDeposited,
         uint totalTokensBought
     );
 
-    modifier salePending() { require(state == State.Pending); _; }
-    modifier saleRunning() { require(state == State.Running); _; }
-    modifier saleEnded() { require(state == State.Ended); _; }
+    // require given state of sale
+    modifier saleIn(State state_) { require(state_ == state); _; }
 
     // check current block is inside closed interval [startBlock, endBlock]
     modifier inRunningBlock() {
@@ -94,14 +106,14 @@ contract ViewlySeedSale is DSAuth, DSMath {
         buyTokens();
     }
 
-    function buyTokens() saleRunning inRunningBlock ethSent payable {
+    function buyTokens() saleIn(State.Running) inRunningBlock ethSent payable {
         uint128 tokensBought = calcTokensForPurchase(msg.value, totalEthDeposited);
         ethDeposits[msg.sender] = add(msg.value, ethDeposits[msg.sender]);
         totalEthDeposited = add(msg.value, totalEthDeposited);
         totalTokensBought = add(tokensBought, totalTokensBought);
 
-        require(totalEthDeposited <= ETH_CAP);
-        require(totalTokensBought <= TOKEN_CAP);
+        require(totalEthDeposited <= MAX_FUNDING);
+        require(totalTokensBought <= MAX_TOKENS);
 
         viewToken.mint(tokensBought);
         viewToken.transfer(msg.sender, tokensBought);
@@ -109,10 +121,22 @@ contract ViewlySeedSale is DSAuth, DSMath {
         LogBuy(msg.sender, msg.value, tokensBought);
     }
 
+    function claimRefund() saleIn(State.Failed) {
+      require(ethDeposits[msg.sender] > 0);
+      require(ethRefunds[msg.sender] == 0);
+
+      uint ethRefund = ethDeposits[msg.sender];
+      ethRefunds[msg.sender] = ethRefund;
+      totalEthRefunded = add(ethRefund, totalEthRefunded);
+      msg.sender.transfer(ethRefund);
+
+      LogRefund(msg.sender, ethRefund);
+    }
+
 
     // AUTH REQUIRED //
 
-    function startSale(uint duration, uint blockOffset) auth salePending {
+    function startSale(uint duration, uint blockOffset) auth saleIn(State.Pending) {
         require(duration > 0);
         require(blockOffset >= 0);
 
@@ -123,19 +147,23 @@ contract ViewlySeedSale is DSAuth, DSMath {
         LogStartSale(startBlock, endBlock);
     }
 
-    function endSale() auth saleRunning {
-        state = State.Ended;
+    function endSale() auth saleIn(State.Running) {
+        if (totalEthDeposited >= MIN_FUNDING)
+          state = State.Succeeded;
+        else
+          state = State.Failed;
 
-        LogEndSale(totalEthDeposited, totalTokensBought);
+        LogEndSale(state == State.Succeeded, totalEthDeposited, totalTokensBought);
     }
 
-    function extendSale(uint blocks) auth saleRunning {
+    function extendSale(uint blocks) auth saleIn(State.Running) {
         require(blocks > 0);
 
         endBlock += add(endBlock, blocks);
     }
 
     function collectEth() auth {
+        require(totalEthDeposited >= MIN_FUNDING);
         require(this.balance > 0);
 
         totalEthCollected = add(totalEthCollected, this.balance);
@@ -145,7 +173,7 @@ contract ViewlySeedSale is DSAuth, DSMath {
 
     // PRIVATE //
 
-    uint128 constant averageTokensPerEth = wdiv(cast(TOKEN_CAP), cast(ETH_CAP));
+    uint128 constant averageTokensPerEth = wdiv(cast(MAX_TOKENS), cast(MAX_FUNDING));
     uint128 constant endingTokensPerEth = wdiv(2 * averageTokensPerEth, cast(2 ether + BONUS));
 
     // calculate number of tokens buyer get when sending 'ethSent' ethers
@@ -162,12 +190,12 @@ contract ViewlySeedSale is DSAuth, DSMath {
         return wmul(cast(ethSent), averageTokensPerEth);
     }
 
-    // return tokensPerEth for 'nthEther' of total contribution (ETH_CAP)
+    // return tokensPerEth for 'nthEther' of total contribution (MAX_FUNDING)
     function calcTokensPerEth(uint128 nthEther)
         private view
         returns (uint128)
     {
-        uint128 shareOfSale = wdiv(nthEther, cast(ETH_CAP));
+        uint128 shareOfSale = wdiv(nthEther, cast(MAX_FUNDING));
         uint128 shareOfBonus = wsub(1 ether, shareOfSale);
         uint128 actualBonus = wmul(shareOfBonus, cast(BONUS));
 
