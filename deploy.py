@@ -16,11 +16,9 @@ def main():
 
         # The address who will be the owner of the contracts
         owner = web3.eth.coinbase
-
         print('Owner address is', owner)
-
-        # Unlock the coinbase account
-        web3.personal.unlockAccount(owner, 'test', duration=None)
+        beneficiary = sys.argv[2]
+        print('Beneficiary address is', beneficiary)
 
         print('Deploying ViewAuthority')
         view_auth = deploy_contract(chain, owner, 'DSGuard')
@@ -34,7 +32,6 @@ def main():
         print('ViewToken has authorithy set')
 
         print('Deploying ViewlySeedSale')
-        beneficiary = sys.argv[2]
         sale = deploy_contract(chain, owner, 'ViewlySeedSale', [view_token.address, beneficiary])
         print('ViewlySeedSale address is', sale.address)
         authority_permit_any(chain, view_auth, sale.address, view_token.address)
@@ -48,7 +45,7 @@ def main():
         print('All done!')
 
 
-def check_succesful_tx(web3: Web3, txid: str, timeout=180) -> dict:
+def check_succesful_tx(web3: Web3, txid: str, timeout=600) -> dict:
     """See if transaction went through (Solidity code did not throw).
 
     :return: Transaction receipt
