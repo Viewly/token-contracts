@@ -109,7 +109,7 @@ def test_start_sale(web3, sale):
     assert start_event['startBlock'] == expected_start_block
     assert start_event['endBlock'] == expected_end_block
 
-def test_end_sale_succeeded(chain: BaseChain, running_sale, customer, beneficiary):
+def test_end_sale_succeeded(chain: BaseChain, token, running_sale, customer):
     sale = running_sale
     send_eth_to_sale(chain, sale, customer, MAX_FUNDING)
 
@@ -117,6 +117,7 @@ def test_end_sale_succeeded(chain: BaseChain, running_sale, customer, beneficiar
 
     assert sale.call().state() == 2
     assert_end_sale_event(sale, True, MAX_FUNDING, approx(MAX_TOKENS))
+    assert token.call().stopped()
 
 def test_end_sale_failed_and_refund(chain: BaseChain, token, running_sale, customer):
     sale = running_sale

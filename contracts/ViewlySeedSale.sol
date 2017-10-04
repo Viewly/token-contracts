@@ -14,6 +14,7 @@ import "./lib/auth.sol";
  * - min funding requirement (else deposits can be reclaimed)
  * - sale start time and duration is set after deploy
  * - sale can be ended anytime after start
+ * - token is stopped right after sale ends
  * - deposits can be collected any time after min funding is reached
  *
  * Amount of VIEW tokens send back to buyers decreases linearly: early buyers
@@ -153,6 +154,7 @@ contract ViewlySeedSale is DSAuth, DSMath {
         else
           state = State.Failed;
 
+        viewToken.stop();
         LogEndSale(state == State.Succeeded, totalEthDeposited, totalTokensBought);
     }
 
