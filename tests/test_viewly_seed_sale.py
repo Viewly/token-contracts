@@ -40,12 +40,25 @@ def assert_last_refund_event(sale, buyer, eth_refund):
     assert event['buyer'] == buyer
     assert event['ethRefund'] == eth_refund
 
+def assert_last_collect_eth_event(sale, collected, total_eth):
+    event = sale.pastEvents('LogCollectEth').get()[-1]['args']
+    assert event['ethCollected'] == collected
+    assert event['totalEthDeposited'] == total_eth
+
+def assert_last_extend_sale_event(sale, blocks):
+    event = sale.pastEvents('LogExtendSale').get()[-1]['args']
+    assert event['blocks'] == blocks
+
 def assert_end_sale_event(sale, success, total_eth, total_tokens=None):
     event = sale.pastEvents('LogEndSale').get()[0]['args']
     assert event['success'] == success
     assert event['totalEthDeposited'] == total_eth
     if total_tokens:
         assert event['totalTokensBought'] == approx(total_tokens)
+def assert_last_collect_eth_event(sale, collected, total_eth):
+    event = sale.pastEvents('LogCollectEth').get()[-1]['args']
+    assert event['ethCollected'] == collected
+    assert event['totalEthDeposited'] == total_eth
 
 @pytest.fixture()
 def token(chain: BaseChain) -> Contract:
@@ -109,7 +122,7 @@ def test_start_sale(web3, sale):
     assert start_event['startBlock'] == expected_start_block
     assert start_event['endBlock'] == expected_end_block
 
-def test_end_sale_succeeded(chain: BaseChain, running_sale, customer, beneficiary):
+def test_end_sale_succeeded(chain: BaseChain, token, running_sale, customer):
     sale = running_sale
     send_eth_to_sale(chain, sale, customer, MAX_FUNDING)
 
@@ -117,6 +130,7 @@ def test_end_sale_succeeded(chain: BaseChain, running_sale, customer, beneficiar
 
     assert sale.call().state() == 2
     assert_end_sale_event(sale, True, MAX_FUNDING, approx(MAX_TOKENS))
+    assert token.call().stopped()
 
 def test_end_sale_failed_and_refund(chain: BaseChain, token, running_sale, customer):
     sale = running_sale
@@ -163,6 +177,7 @@ def test_collect_eth(chain: BaseChain, running_sale, customer, beneficiary):
     balance_change = chain.web3.eth.getBalance(beneficiary) - initial_balance
     assert balance_change == approx(MIN_FUNDING)
     assert chain.web3.eth.getBalance(sale.address) == 0
+    assert_last_collect_eth_event(sale, MIN_FUNDING, MIN_FUNDING)
 
     # buy some more, sale still open
     send_eth_to_sale(chain, sale, customer, to_wei(30, 'ether'))
@@ -231,6 +246,7 @@ def test_extend_sale(chain: BaseChain, token, running_sale, customer):
     initial_end_block = sale.call().endBlock()
     sale.transact().extendSale(10)
     assert sale.call().endBlock() == (initial_end_block + 10)
+    assert_last_extend_sale_event(sale, 10)
 
     # retry token purchase
     send_eth_to_sale(chain, sale, customer, to_wei(1, 'ether'))
