@@ -40,6 +40,11 @@ def assert_last_refund_event(sale, buyer, eth_refund):
     assert event['buyer'] == buyer
     assert event['ethRefund'] == eth_refund
 
+def assert_last_collect_eth_event(sale, collected, total_eth):
+    event = sale.pastEvents('LogCollectEth').get()[-1]['args']
+    assert event['ethCollected'] == collected
+    assert event['totalEthDeposited'] == total_eth
+
 def assert_end_sale_event(sale, success, total_eth, total_tokens=None):
     event = sale.pastEvents('LogEndSale').get()[0]['args']
     assert event['success'] == success
@@ -164,6 +169,7 @@ def test_collect_eth(chain: BaseChain, running_sale, customer, beneficiary):
     balance_change = chain.web3.eth.getBalance(beneficiary) - initial_balance
     assert balance_change == approx(MIN_FUNDING)
     assert chain.web3.eth.getBalance(sale.address) == 0
+    assert_last_collect_eth_event(sale, MIN_FUNDING, MIN_FUNDING)
 
     # buy some more, sale still open
     send_eth_to_sale(chain, sale, customer, to_wei(30, 'ether'))

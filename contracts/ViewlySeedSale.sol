@@ -83,6 +83,11 @@ contract ViewlySeedSale is DSAuth, DSMath {
         uint totalTokensBought
     );
 
+    event LogCollectEth(
+        uint ethCollected,
+        uint totalEthDeposited
+    );
+
     // require given state of sale
     modifier saleIn(State state_) { require(state_ == state); _; }
 
@@ -168,8 +173,10 @@ contract ViewlySeedSale is DSAuth, DSMath {
         require(totalEthDeposited >= MIN_FUNDING);
         require(this.balance > 0);
 
-        totalEthCollected = add(totalEthCollected, this.balance);
-        beneficiary.transfer(this.balance);
+        uint ethToCollect = this.balance;
+        totalEthCollected = add(totalEthCollected, ethToCollect);
+        beneficiary.transfer(ethToCollect);
+        LogCollectEth(ethToCollect, totalEthDeposited);
     }
 
 
