@@ -83,6 +83,10 @@ contract ViewlySeedSale is DSAuth, DSMath {
         uint totalTokensBought
     );
 
+    event LogExtendSale(
+        uint blocks
+    );
+
     event LogCollectEth(
         uint ethCollected,
         uint totalEthDeposited
@@ -167,6 +171,7 @@ contract ViewlySeedSale is DSAuth, DSMath {
         require(blocks > 0);
 
         endBlock = add(endBlock, blocks);
+        LogExtendSale(blocks);
     }
 
     function collectEth() auth {

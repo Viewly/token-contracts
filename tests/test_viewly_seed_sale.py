@@ -45,12 +45,20 @@ def assert_last_collect_eth_event(sale, collected, total_eth):
     assert event['ethCollected'] == collected
     assert event['totalEthDeposited'] == total_eth
 
+def assert_last_extend_sale_event(sale, blocks):
+    event = sale.pastEvents('LogExtendSale').get()[-1]['args']
+    assert event['blocks'] == blocks
+
 def assert_end_sale_event(sale, success, total_eth, total_tokens=None):
     event = sale.pastEvents('LogEndSale').get()[0]['args']
     assert event['success'] == success
     assert event['totalEthDeposited'] == total_eth
     if total_tokens:
         assert event['totalTokensBought'] == approx(total_tokens)
+def assert_last_collect_eth_event(sale, collected, total_eth):
+    event = sale.pastEvents('LogCollectEth').get()[-1]['args']
+    assert event['ethCollected'] == collected
+    assert event['totalEthDeposited'] == total_eth
 
 @pytest.fixture()
 def token(chain: BaseChain) -> Contract:
@@ -238,6 +246,7 @@ def test_extend_sale(chain: BaseChain, token, running_sale, customer):
     initial_end_block = sale.call().endBlock()
     sale.transact().extendSale(10)
     assert sale.call().endBlock() == (initial_end_block + 10)
+    assert_last_extend_sale_event(sale, 10)
 
     # retry token purchase
     send_eth_to_sale(chain, sale, customer, to_wei(1, 'ether'))
