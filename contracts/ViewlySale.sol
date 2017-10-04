@@ -3,10 +3,10 @@
 
 pragma solidity ^0.4.11;
 
-import "./lib/math.sol";
-import "./lib/token.sol";
-import "./lib/note.sol";
-import "./lib/auth.sol";
+import "./dappsys/math.sol";
+import "./dappsys/token.sol";
+import "./dappsys/note.sol";
+import "./dappsys/auth.sol";
 
 
 contract ViewlySale is DSAuth, DSMath, DSNote {
@@ -24,14 +24,14 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // supply and allocation
     DSToken public VIEW;
     // absolute hard cap of token supply (1 Billion)
-    uint128 public constant tokenCreationCap = 1000000000 ether;
+    uint public constant tokenCreationCap = 1000000000 ether;
     // 2% per month mintable token cap
-    uint128 public constant mintMonthlyCap = wmul(tokenCreationCap, 0.02 ether);
+    uint public constant mintMonthlyCap = wmul(tokenCreationCap, 0.02 ether);
 
     // variables for current sale round on startSaleRound
     uint8   public roundNumber;         // round 1,2,3...
-    uint128 public roundEthCap;         // ETH cap in WEI
-    uint128 public roundTokenCap;       // Token cap in WEI
+    uint    public roundEthCap;         // ETH cap in WEI
+    uint    public roundTokenCap;       // Token cap in WEI
     uint    public roundDurationBlocks; // 72 * 3600 // 17 =~ 3 days
     uint    public roundStartBlock;     // sale round start block
     uint    public roundEndBlock;       // sale round end block
@@ -121,8 +121,8 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     function startSaleRound(
         uint roundDurationBlocks_,
         uint blockFutureOffset,
-        uint128 roundTokenCap_,
-        uint128 roundEthCap_
+        uint roundTokenCap_,
+        uint roundEthCap_
     )
         notRunning
         auth
@@ -204,7 +204,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
     // -----
 
     // once the sale round is ended users can claim their share of tokens
-    function claim(uint8 roundNumber_) notRunning returns(uint128){
+    function claim(uint8 roundNumber_) notRunning returns(uint){
         // the round must had happened
         require(roundNumber_ > 0);
         require(roundNumber_ <= roundNumber);
@@ -216,14 +216,14 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         uint etherSent = ethDeposits[roundNumber_][msg.sender];
         require(etherSent > 0);
 
-        uint128 tokens = calculateTokensRewardFor(etherSent, roundNumber_);
+        uint tokens = calculateTokensRewardFor(etherSent, roundNumber_);
         assert(tokens > 0);
 
         // burn the deposit
         ethDeposits[roundNumber_][msg.sender] = 0;
 
         // mint the new tokens
-        VIEW.mintTo(msg.sender, tokens);
+        VIEW.mint(msg.sender, tokens);
 
         LogClaimTokens(roundNumber_, msg.sender, etherSent, tokens);
 
@@ -285,7 +285,7 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
         }
 
         // mint the new tokens
-        VIEW.mintTo(multisigAddr, cast(toMint));
+        VIEW.mint(multisigAddr, toMint);
 
         // log mintage
         mintHistory.push(Mintage(toMint, block.timestamp));
@@ -337,11 +337,11 @@ contract ViewlySale is DSAuth, DSMath, DSNote {
 
     // calculate tokens reward for ether sent in given sale round
     function calculateTokensRewardFor(uint etherSent, uint8 roundNumber)
-        private constant returns(uint128 tokensReward)
+        private constant returns(uint tokensReward)
     {
-        uint128 totalEtherInRound = cast(ethRaisedInRound[roundNumber]);
-        uint128 totalTokensInRound = cast(tokenSupplyInRound[roundNumber]);
-        uint128 tokensShare = wdiv(cast(etherSent), totalEtherInRound);
+        uint totalEtherInRound = ethRaisedInRound[roundNumber];
+        uint totalTokensInRound = tokenSupplyInRound[roundNumber];
+        uint tokensShare = wdiv(etherSent, totalEtherInRound);
         tokensReward = wmul(tokensShare, totalTokensInRound);
     }
 }

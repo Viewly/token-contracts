@@ -3,9 +3,9 @@
 
 pragma solidity ^0.4.16;
 
-import "./lib/math.sol";
-import "./lib/token.sol";
-import "./lib/auth.sol";
+import "./dappsys/math.sol";
+import "./dappsys/token.sol";
+import "./dappsys/auth.sol";
 
 /* Viewly seed token sale contract, where buyers send ethers to receive ERC-20
  * VIEW tokens in return. It features:
@@ -117,7 +117,7 @@ contract ViewlySeedSale is DSAuth, DSMath {
     }
 
     function buyTokens() saleIn(State.Running) inRunningBlock ethSent payable {
-        uint128 tokensBought = calcTokensForPurchase(msg.value, totalEthDeposited);
+        uint tokensBought = calcTokensForPurchase(msg.value, totalEthDeposited);
         ethDeposits[msg.sender] = add(msg.value, ethDeposits[msg.sender]);
         totalEthDeposited = add(msg.value, totalEthDeposited);
         totalTokensBought = add(tokensBought, totalTokensBought);
@@ -125,8 +125,7 @@ contract ViewlySeedSale is DSAuth, DSMath {
         require(totalEthDeposited <= MAX_FUNDING);
         require(totalTokensBought <= MAX_TOKENS);
 
-        viewToken.mint(tokensBought);
-        viewToken.transfer(msg.sender, tokensBought);
+        viewToken.mint(msg.sender, tokensBought);
 
         LogBuy(msg.sender, msg.value, tokensBought);
     }
@@ -187,33 +186,33 @@ contract ViewlySeedSale is DSAuth, DSMath {
 
     // PRIVATE //
 
-    uint128 constant averageTokensPerEth = wdiv(cast(MAX_TOKENS), cast(MAX_FUNDING));
-    uint128 constant endingTokensPerEth = wdiv(2 * averageTokensPerEth, cast(2 ether + BONUS));
+    uint constant averageTokensPerEth = wdiv(MAX_TOKENS, MAX_FUNDING);
+    uint constant endingTokensPerEth = wdiv(2 * averageTokensPerEth, 2 ether + BONUS);
 
     // calculate number of tokens buyer get when sending 'ethSent' ethers
     // after 'ethDepostiedSoFar` already reeived in the sale
     function calcTokensForPurchase(uint ethSent, uint ethDepositedSoFar)
         private view
-        returns (uint128 tokens)
+        returns (uint tokens)
     {
-        uint128 tokensPerEthAtStart = calcTokensPerEth(cast(ethDepositedSoFar));
-        uint128 tokensPerEthAtEnd = calcTokensPerEth(cast(add(ethDepositedSoFar, ethSent)));
-        uint128 averageTokensPerEth = wadd(tokensPerEthAtStart, tokensPerEthAtEnd) / 2;
+        uint tokensPerEthAtStart = calcTokensPerEth(ethDepositedSoFar);
+        uint tokensPerEthAtEnd = calcTokensPerEth(add(ethDepositedSoFar, ethSent));
+        uint averageTokensPerEth = add(tokensPerEthAtStart, tokensPerEthAtEnd) / 2;
 
         // = ethSent * averageTokensPerEthInThisPurchase
-        return wmul(cast(ethSent), averageTokensPerEth);
+        return wmul(ethSent, averageTokensPerEth);
     }
 
     // return tokensPerEth for 'nthEther' of total contribution (MAX_FUNDING)
-    function calcTokensPerEth(uint128 nthEther)
+    function calcTokensPerEth(uint nthEther)
         private view
-        returns (uint128)
+        returns (uint)
     {
-        uint128 shareOfSale = wdiv(nthEther, cast(MAX_FUNDING));
-        uint128 shareOfBonus = wsub(1 ether, shareOfSale);
-        uint128 actualBonus = wmul(shareOfBonus, cast(BONUS));
+        uint shareOfSale = wdiv(nthEther, MAX_FUNDING);
+        uint shareOfBonus = sub(1 ether, shareOfSale);
+        uint actualBonus = wmul(shareOfBonus, BONUS);
 
         // = endingTokensPerEth * (1 + shareOfBonus * BONUS)
-        return wmul(endingTokensPerEth, wadd(1 ether, actualBonus));
+        return wmul(endingTokensPerEth, add(1 ether, actualBonus));
     }
 }
