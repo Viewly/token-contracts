@@ -227,8 +227,12 @@ def test_extend_sale(chain: BaseChain, token, running_sale, customer):
     with pytest.raises(TransactionFailed):
         send_eth_to_sale(chain, sale, customer, to_wei(1, 'ether'))
 
-    # extend sale for 2 more blocks and re-try
-    sale.transact().extendSale(2)
+    # extend sale for few more blocks
+    initial_end_block = sale.call().endBlock()
+    sale.transact().extendSale(10)
+    assert sale.call().endBlock() == (initial_end_block + 10)
+
+    # retry token purchase
     send_eth_to_sale(chain, sale, customer, to_wei(1, 'ether'))
     assert token.call().balanceOf(customer) > 0
     assert chain.web3.eth.getBalance(sale.address) == to_wei(1, 'ether')

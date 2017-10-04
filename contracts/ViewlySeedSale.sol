@@ -159,7 +159,7 @@ contract ViewlySeedSale is DSAuth, DSMath {
     function extendSale(uint blocks) auth saleIn(State.Running) {
         require(blocks > 0);
 
-        endBlock += add(endBlock, blocks);
+        endBlock = add(endBlock, blocks);
     }
 
     function collectEth() auth {
