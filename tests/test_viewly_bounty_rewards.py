@@ -5,15 +5,10 @@ from web3.contract import Contract
 from populus.chain.base import BaseChain
 from ethereum.tester import TransactionFailed
 
+from helpers import deploy_contract
+
 
 MAX_TOKEN_REWARDS = to_wei(3_000_000, 'ether')
-
-def deploy_contract(chain: BaseChain, contract_name: str, args=[]) -> Contract:
-    # deploy contract on chain with coinbase and optional init args
-    factory = chain.get_contract_factory(contract_name)
-    deploy_tx_hash = factory.deploy(args=args)
-    contract_address = chain.wait.for_contract_address(deploy_tx_hash)
-    return factory(address=contract_address)
 
 def assert_last_token_reward_event(bounty, recipient, tokens):
     event = bounty.pastEvents('LogTokenReward').get()[-1]['args']
