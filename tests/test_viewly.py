@@ -1,12 +1,11 @@
-# The MIT License (MIT)
-# Copyright (c) 2017 Viewly (https://view.ly)
 import pytest
 
 from web3.contract import Contract
 from eth_utils import to_wei
-
 from ethereum.tester import TransactionFailed
 from populus.chain.base import BaseChain
+
+from helpers import deploy_contract, send_eth
 
 
 # -------------------
@@ -30,13 +29,6 @@ SALE_ROUNDS = {
     }
 }
 
-def deploy_contract(chain: BaseChain, contract_name: str, args=[]) -> Contract:
-    # deploy contract on chain with coinbase and optional init args
-    factory = chain.get_contract_factory(contract_name)
-    deploy_tx_hash = factory.deploy(args=args)
-    contract_address = chain.wait.for_contract_address(deploy_tx_hash)
-    return factory(address=contract_address)
-
 @pytest.fixture()
 def view_token(chain: BaseChain) -> Contract:
     """ A blank and running VIEW token contract. """
@@ -58,7 +50,7 @@ def running_round_one(viewly_sale: Contract) -> Contract:
     return step_start_round(viewly_sale)
 
 @pytest.fixture()
-def running_round_one_buyers(running_round_one: Contract,
+def running_round_one_buyers(chain: BaseChain, running_round_one: Contract,
                              web3, customer, customer2) -> Contract:
     """
     A blank sale,
@@ -66,17 +58,17 @@ def running_round_one_buyers(running_round_one: Contract,
     with dummy buyers.
     """
     buyers = [customer, customer2]
-    return step_make_purchases(running_round_one, web3, buyers)
+    return step_make_purchases(chain, running_round_one, web3, buyers)
 
 @pytest.fixture()
-def ending_round_one(running_round_one_buyers: Contract, chain) -> Contract:
+def ending_round_one(chain: BaseChain, running_round_one_buyers: Contract) -> Contract:
     """
     A blank sale,
     with first round started,
     with dummy buyers,
     with first round ended.
     """
-    return step_end_round(running_round_one_buyers, chain)
+    return step_end_round(chain, running_round_one_buyers)
 
 @pytest.fixture
 def owner(accounts) -> str:
@@ -123,8 +115,8 @@ def test_round_two(ending_round_one, web3, customer, customer2, chain):
     sale = ending_round_one
     sale = step_start_round(sale, round_num=2)
     buyers = [customer, customer2]
-    sale = step_make_purchases(sale, web3, buyers)
-    sale = step_end_round(sale, chain)
+    sale = step_make_purchases(chain, sale, web3, buyers)
+    sale = step_end_round(chain, sale)
 
     # manual assertions based on hardcoded params in
     # step_start_round and step_make_purchases
@@ -138,18 +130,13 @@ def test_round_two(ending_round_one, web3, customer, customer2, chain):
     assert sale.call().tokenSupplyInRound(2) == 18_000_000 * 10**18
 
 
-def test_buyTokens(running_round_one, web3, customer, customer2):
+def test_buyTokens(chain, running_round_one, web3, customer, customer2):
     sale = running_round_one
     roundNumber = sale.call().roundNumber()
 
     # buying some tokens should work without err
     msg_value = to_wei(10, "ether")
-    web3.eth.sendTransaction({
-        "from": customer,
-        "to": sale.address,
-        "value": msg_value,
-        "gas": 250000,
-    })
+    send_eth(chain, customer, sale.address, msg_value)
 
     # balances should update correctly
     user_deposit = sale.call().ethDeposits(roundNumber, customer)
@@ -166,12 +153,7 @@ def test_buyTokens(running_round_one, web3, customer, customer2):
 
     # make another purchase
     msg_value2 = to_wei(30, "ether")
-    web3.eth.sendTransaction({
-        "from": customer2,
-        "to": sale.address,
-        "value": msg_value2,
-        "gas": 250000,
-    })
+    send_eth(chain, customer2, sale.address, msg_value2)
 
     # balances should add up correctly
     user_deposit2 = sale.call().ethDeposits(roundNumber, customer2)
@@ -179,32 +161,19 @@ def test_buyTokens(running_round_one, web3, customer, customer2):
     assert sale.call().ethRaisedInRound(roundNumber) == sum([msg_value, msg_value2])
 
     # make another purchase from re-used account
-    web3.eth.sendTransaction({
-        "from": customer,
-        "to": sale.address,
-        "value": msg_value,
-        "gas": 250000,
-    })
+    send_eth(chain, customer, sale.address, msg_value)
 
     # balances should update correctly
     user_deposit = sale.call().ethDeposits(roundNumber, customer)
     assert user_deposit == 2 * msg_value
 
 # test buying tokens up to full roundEthCap amount
-def test_buyTokens2(running_round_one, web3, customer, customer2):
+def test_buyTokens2(chain, running_round_one, web3, customer, customer2):
     sale = running_round_one
     round = sale.call().roundNumber()
 
-    web3.eth.sendTransaction({
-        "value": to_wei(20, "ether"),
-        "from": customer,
-        "to": sale.address,
-    })
-    web3.eth.sendTransaction({
-        "value": to_wei(80, "ether"),
-        "from": customer2,
-        "to": sale.address,
-    })
+    send_eth(chain, customer, sale.address, to_wei(20, "ether"))
+    send_eth(chain, customer2, sale.address, to_wei(80, "ether"))
 
     purchase_1_eth = sale.call().ethDeposits(round, customer)
     purchase_2_eth = sale.call().ethDeposits(round, customer2)
@@ -212,24 +181,18 @@ def test_buyTokens2(running_round_one, web3, customer, customer2):
     assert sale.call().ethRaisedInRound(round) == to_wei(100, "ether")
     assert sale.call().roundEthCap() == to_wei(100, "ether")
 
-def test_buyTokensFail(viewly_sale, web3, customer):
+def test_buyTokensFail(chain, viewly_sale, web3, customer):
     sale = viewly_sale
 
     # sale is not running, so the purchase should fail
     assert is_not_running(viewly_sale)
     try:
-        web3.eth.sendTransaction({
-            "from": customer,
-            "to": sale.address,
-            "value": to_wei(10, "ether"),
-            "gas": 250000,
-        })
-        raise AssertionError(
-            "Buying tokens on closed sale should have failed")
+        send_eth(chain, customer, sale.address, to_wei(10, "ether"))
+        raise AssertionError("Buying tokens on closed sale should have failed")
     except TransactionFailed:
         pass
 
-def test_buyTokensFail2(running_round_one, web3, customer):
+def test_buyTokensFail2(chain, running_round_one, web3, customer):
     sale = running_round_one
     # is_running(sale)
 
@@ -237,13 +200,7 @@ def test_buyTokensFail2(running_round_one, web3, customer):
     msg_value = to_wei(100000, "ether")
     assert sale.call().roundEthCap() < msg_value
     with pytest.raises(TransactionFailed):
-        web3.eth.sendTransaction({
-            "from": customer,
-            "to": sale.address,
-            "value": msg_value,
-            "gas": 250000,
-        })
-
+        send_eth(chain, customer, sale.address, msg_value)
 
 def test_claim(ending_round_one, customer):
     sale = ending_round_one
@@ -395,10 +352,8 @@ def step_start_round(sale: Contract, round_num = 1) -> Contract:
 
     return sale
 
-def step_make_purchases(sale: Contract,
-                        web3,
-                        buyers: list,
-                        amounts: list = None) -> Contract:
+def step_make_purchases(chain: BaseChain, sale: Contract,
+                        web3, buyers: list, amounts: list = None) -> Contract:
 
     assert is_running(sale)
 
@@ -406,16 +361,11 @@ def step_make_purchases(sale: Contract,
         amounts = [to_wei(10, 'ether') for _ in buyers]
 
     for buyer, amount in zip(buyers, amounts):
-        web3.eth.sendTransaction({
-            "from": buyer,
-            "to": sale.address,
-            "value": amount,
-            "gas": 250000,
-        })
+        send_eth(chain, buyer, sale.address, amount)
 
     return sale
 
-def step_end_round(sale: Contract, chain) -> Contract:
+def step_end_round(chain: BaseChain, sale: Contract) -> Contract:
     assert is_running(sale)
 
     # fast-forward chain up to round end block

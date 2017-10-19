@@ -1,11 +1,12 @@
 import pytest
 
 from pytest import approx
-from web3.contract import Contract
 from eth_utils import to_wei
-
-from ethereum.tester import TransactionFailed
+from web3.contract import Contract
 from populus.chain.base import BaseChain
+from ethereum.tester import TransactionFailed
+
+from helpers import deploy_contract, send_eth
 
 
 MAX_TOKENS      = to_wei(10000000, 'ether')
@@ -13,21 +14,6 @@ MAX_FUNDING     = to_wei(4000, 'ether')
 MIN_FUNDING     = to_wei(1000, 'ether')
 DURATION        = 10
 BLOCK_OFFSET    = 2
-
-def deploy_contract(chain: BaseChain, contract_name: str, args=[]) -> Contract:
-    # deploy contract on chain with coinbase and optional init args
-    factory = chain.get_contract_factory(contract_name)
-    deploy_tx_hash = factory.deploy(args=args)
-    contract_address = chain.wait.for_contract_address(deploy_tx_hash)
-    return factory(address=contract_address)
-
-def send_eth_to_sale(chain, sale, user, eth_to_send):
-    return chain.web3.eth.sendTransaction({
-        'from': user,
-        'to': sale.address,
-        'value': eth_to_send,
-        'gas': 250000,
-    })
 
 def assert_last_buy_event(sale, buyer, eth_sent, tokens_bought):
     event = sale.pastEvents('LogBuy').get()[-1]['args']
@@ -55,6 +41,7 @@ def assert_end_sale_event(sale, success, total_eth, total_tokens=None):
     assert event['totalEthDeposited'] == total_eth
     if total_tokens:
         assert event['totalTokensBought'] == approx(total_tokens)
+
 def assert_last_collect_eth_event(sale, collected, total_eth):
     event = sale.pastEvents('LogCollectEth').get()[-1]['args']
     assert event['ethCollected'] == collected
@@ -97,10 +84,6 @@ def beneficiary(accounts) -> str:
     return accounts[3]
 
 
-# --------
-# TESTS
-# --------
-
 def test_init(chain, token, beneficiary):
     sale = deploy_contract(chain, 'ViewlySeedSale', args=[token.address, beneficiary])
 
@@ -124,7 +107,7 @@ def test_start_sale(web3, sale):
 
 def test_end_sale_succeeded(chain: BaseChain, token, running_sale, customer):
     sale = running_sale
-    send_eth_to_sale(chain, sale, customer, MAX_FUNDING)
+    send_eth(chain, customer, sale.address, MAX_FUNDING)
 
     sale.transact().endSale()
 
@@ -135,7 +118,7 @@ def test_end_sale_succeeded(chain: BaseChain, token, running_sale, customer):
 def test_end_sale_failed_and_refund(chain: BaseChain, token, running_sale, customer):
     sale = running_sale
     eth_sent = MIN_FUNDING - to_wei(1, 'ether')
-    send_eth_to_sale(chain, sale, customer, eth_sent)
+    send_eth(chain, customer, sale.address, eth_sent)
     sale.transact().endSale()
 
     # sale should be failed
@@ -163,14 +146,14 @@ def test_collect_eth(chain: BaseChain, running_sale, customer, beneficiary):
     initial_balance = chain.web3.eth.getBalance(beneficiary)
 
     # buy some token on sale
-    send_eth_to_sale(chain, sale, customer, MIN_FUNDING - to_wei(2, 'ether'))
+    send_eth(chain, customer, sale.address, MIN_FUNDING - to_wei(2, 'ether'))
 
     # ETH collection should fail before min funding cap is reached
     with pytest.raises(TransactionFailed):
         sale.transact().collectEth()
 
     # buy more tokens on sale up to min funding cap
-    send_eth_to_sale(chain, sale, customer, to_wei(2, 'ether'))
+    send_eth(chain, customer, sale.address, to_wei(2, 'ether'))
 
     # collect deposited eth before end of sale
     sale.transact().collectEth()
@@ -180,7 +163,7 @@ def test_collect_eth(chain: BaseChain, running_sale, customer, beneficiary):
     assert_last_collect_eth_event(sale, MIN_FUNDING, MIN_FUNDING)
 
     # buy some more, sale still open
-    send_eth_to_sale(chain, sale, customer, to_wei(30, 'ether'))
+    send_eth(chain, customer, sale.address, to_wei(30, 'ether'))
     assert chain.web3.eth.getBalance(sale.address) == to_wei(30, 'ether')
     assert sale.call().totalEthDeposited() == MIN_FUNDING + to_wei(30, 'ether')
 
@@ -189,7 +172,7 @@ def test_buy(chain, web3, token, sale, customer):
 
     eth_sent = MAX_FUNDING
     expected_tokens = MAX_TOKENS
-    send_eth_to_sale(chain, sale, customer, eth_sent)
+    send_eth(chain, customer, sale.address, eth_sent)
 
     # sale contract should save eth deposit and update totals
     assert sale.call().ethDeposits(customer) == eth_sent
@@ -207,10 +190,10 @@ def test_buy_multiple_times_with_bonuses(chain: BaseChain, running_sale, custome
     sale = running_sale
     half_eth_cap = to_wei(2000, 'ether')
 
-    send_eth_to_sale(chain, sale, customer, half_eth_cap)
+    send_eth(chain, customer, sale.address, half_eth_cap)
     assert_last_buy_event(sale, customer, half_eth_cap, to_wei(5174418.605, 'ether'))
 
-    send_eth_to_sale(chain, sale, customer, half_eth_cap)
+    send_eth(chain, customer, sale.address, half_eth_cap)
     assert_last_buy_event(sale, customer, half_eth_cap, to_wei(4825581.395, 'ether'))
 
     assert sale.call().totalEthDeposited() == MAX_FUNDING
@@ -219,16 +202,16 @@ def test_buy_multiple_times_with_bonuses(chain: BaseChain, running_sale, custome
 def test_buy_multiple_in_diverse_amounts(chain: BaseChain, running_sale, customer):
     sale = running_sale
 
-    send_eth_to_sale(chain, sale, customer, to_wei(111, 'milli'))
+    send_eth(chain, customer, sale.address, to_wei(111, 'milli'))
     assert_last_buy_event(sale, customer, to_wei(111, 'milli'), to_wei(296.8599279, 'ether'))
 
-    send_eth_to_sale(chain, sale, customer, to_wei(2322, 'ether'))
+    send_eth(chain, customer, sale.address, to_wei(2322, 'ether'))
     assert_last_buy_event(sale, customer, to_wei(2322, 'ether'), to_wei(5974875.023, 'ether'))
 
-    send_eth_to_sale(chain, sale, customer, to_wei(45, 'ether'))
+    send_eth(chain, customer, sale.address, to_wei(45, 'ether'))
     assert_last_buy_event(sale, customer, to_wei(45, 'ether'), to_wei(111147.6022, 'ether'))
 
-    send_eth_to_sale(chain, sale, customer, to_wei(1632889, 'milli'))
+    send_eth(chain, customer, sale.address, to_wei(1632889, 'milli'))
     assert_last_buy_event(sale, customer, to_wei(1632889, 'milli'), to_wei(3913680.515, 'ether'))
 
     assert sale.call().totalEthDeposited() == MAX_FUNDING
@@ -240,7 +223,7 @@ def test_extend_sale(chain: BaseChain, token, running_sale, customer):
     # buying something on end block should not succeed
     chain.wait.for_block(sale.call().endBlock())
     with pytest.raises(TransactionFailed):
-        send_eth_to_sale(chain, sale, customer, to_wei(1, 'ether'))
+        send_eth(chain, customer, sale.address, to_wei(1, 'ether'))
 
     # extend sale for few more blocks
     initial_end_block = sale.call().endBlock()
@@ -249,6 +232,6 @@ def test_extend_sale(chain: BaseChain, token, running_sale, customer):
     assert_last_extend_sale_event(sale, 10)
 
     # retry token purchase
-    send_eth_to_sale(chain, sale, customer, to_wei(1, 'ether'))
+    send_eth(chain, customer, sale.address, to_wei(1, 'ether'))
     assert token.call().balanceOf(customer) > 0
     assert chain.web3.eth.getBalance(sale.address) == to_wei(1, 'ether')
