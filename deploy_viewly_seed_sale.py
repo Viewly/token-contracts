@@ -6,7 +6,11 @@ from deploy_utils import deploy_contract, dump_abi, authority_permit_any, check_
 
 def main():
     # Chain must be preconfigured in populus.json
-    chain_name = sys.argv[1]
+    try:
+        _, chain_name, beneficiary, *_ = sys.argv
+    except ValueError:
+        print("Usage:\n python deploy.py chain_name beneficiary_address")
+        return
 
     with Project().get_chain(chain_name) as chain:
         web3 = chain.web3
@@ -15,7 +19,6 @@ def main():
         # The address who will be the owner of the contracts
         owner = web3.eth.coinbase
         print('Owner address is', owner)
-        beneficiary = sys.argv[2]
         print('Beneficiary address is', beneficiary)
 
         print('Deploying ViewAuthority')

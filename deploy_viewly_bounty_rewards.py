@@ -5,14 +5,19 @@ from deploy_utils import load_contract, deploy_contract, dump_abi, authority_per
 
 
 def main():
-    chain_name = sys.argv[1]
+    try:
+        _, chain_name, view_token_addr, view_auth_addr, *_ = sys.argv
+    except ValueError:
+        print("Usage:\n python deploy.py "
+              "chain_name view_token_addr view_auth_addr")
+        return
 
     with Project().get_chain(chain_name) as chain:
         print("Head block is %d on the %s chain" % (chain.web3.eth.blockNumber, chain_name))
 
         owner = chain.web3.eth.coinbase
-        view_token = load_contract(chain, 'DSToken', sys.argv[2])
-        view_auth = load_contract(chain, 'DSGuard', sys.argv[3])
+        view_token = load_contract(chain, 'DSToken', view_token_addr)
+        view_auth = load_contract(chain, 'DSGuard', view_auth_addr)
         print('Owner address is', owner)
         print('ViewToken address is', view_token.address)
         print('ViewAuthorithy address is', view_auth.address)

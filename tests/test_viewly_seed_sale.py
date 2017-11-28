@@ -87,7 +87,7 @@ def beneficiary(accounts) -> str:
 def test_init(chain, token, beneficiary):
     sale = deploy_contract(chain, 'ViewlySeedSale', args=[token.address, beneficiary])
 
-    assert sale.call().viewToken() == token.address
+    assert sale.call().viewToken().lower() == token.address
     assert sale.call().beneficiary() == beneficiary
 
 def test_start_sale(web3, sale):

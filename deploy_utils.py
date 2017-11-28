@@ -4,14 +4,16 @@ from web3 import Web3
 import json
 
 def load_contract(chain: BaseChain, contract_name, address):
-    contract_factory = chain.get_contract_factory(contract_name)
-    return contract_factory(address=address)
+    contract, _ = chain.provider.get_or_deploy_contract(contract_name)
+    return contract
 
 def deploy_contract(chain: BaseChain, owner, contract_name, args=[]):
-    contract_factory = chain.get_contract_factory(contract_name)
-    tx = contract_factory.deploy(transaction={"from": owner}, args=args)
-    receipt = check_succesful_tx(chain.web3, tx)
-    return contract_factory(address=receipt["contractAddress"])
+    contract, _ = chain.provider.get_or_deploy_contract(
+        contract_name,
+        deploy_transaction={'from': owner},
+        deploy_args=args,
+    )
+    return contract
 
 def dump_abi(contract, filename):
     with open(filename, 'w') as f:

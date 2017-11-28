@@ -1,4 +1,4 @@
-populus==1.6.9
+populus>=2.0.1
 flask
 funcy
 toolz
