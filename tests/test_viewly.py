@@ -352,8 +352,12 @@ def step_start_round(sale: Contract, round_num = 1) -> Contract:
 
     return sale
 
-def step_make_purchases(chain: BaseChain, sale: Contract,
-                        web3, buyers: list, amounts: list = None) -> Contract:
+def step_make_purchases(
+    chain: BaseChain,
+    sale: Contract,
+    web3,
+    buyers: list,
+    amounts: list = None) -> Contract:
 
     assert is_running(sale)
 

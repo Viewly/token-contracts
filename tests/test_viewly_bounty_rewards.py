@@ -42,7 +42,7 @@ def recipient2(accounts) -> str:
 
 
 def test_init(chain, bounty, token):
-    assert bounty.call().viewToken() == token.address
+    assert bounty.call().viewToken().lower() == token.address
     assert bounty.call().totalTokenRewards() == 0
 
 def test_send_token_reward(chain, bounty, token, recipient, recipient2):
