@@ -1,7 +1,12 @@
 import sys
 
 from populus import Project
-from deploy_utils import load_contract, deploy_contract, dump_abi, authority_permit_any
+from deploy_utils import (
+    load_contract,
+    deploy_contract,
+    dump_abi,
+    authority_permit_any,
+)
 
 
 def main():

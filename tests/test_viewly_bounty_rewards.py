@@ -1,6 +1,6 @@
 import pytest
 
-from eth_utils import to_wei
+from eth_utils import to_wei, is_same_address
 from web3.contract import Contract
 from populus.chain.base import BaseChain
 from ethereum.tester import TransactionFailed
@@ -42,7 +42,7 @@ def recipient2(accounts) -> str:
 
 
 def test_init(chain, bounty, token):
-    assert bounty.call().viewToken().lower() == token.address
+    assert is_same_address(bounty.call().viewToken(), token.address)
     assert bounty.call().totalTokenRewards() == 0
 
 def test_send_token_reward(chain, bounty, token, recipient, recipient2):

@@ -1,7 +1,7 @@
 import pytest
 
 from pytest import approx
-from eth_utils import to_wei
+from eth_utils import to_wei, is_same_address
 from web3.contract import Contract
 from populus.chain.base import BaseChain
 from ethereum.tester import TransactionFailed
@@ -87,7 +87,7 @@ def beneficiary(accounts) -> str:
 def test_init(chain, token, beneficiary):
     sale = deploy_contract(chain, 'ViewlySeedSale', args=[token.address, beneficiary])
 
-    assert sale.call().viewToken().lower() == token.address
+    assert is_same_address(sale.call().viewToken(), token.address)
     assert sale.call().beneficiary() == beneficiary
 
 def test_start_sale(web3, sale):
