@@ -3,7 +3,7 @@ import sys
 import pathlib
 
 from populus import Project
-from deploy_utils import (
+from utils import (
     deploy_contract,
     dump_abi,
     authority_permit_any,
@@ -19,7 +19,7 @@ def main():
     try:
         _, chain_name, beneficiary = sys.argv
     except ValueError:
-        print("Usage:\n python deploy.py chain_name beneficiary_address")
+        print("Usage:\n python seed_sale.py chain_name beneficiary_address")
         return
 
     with Project().get_chain(chain_name) as chain:

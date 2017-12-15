@@ -3,7 +3,7 @@ import sys
 import pathlib
 
 from populus import Project
-from deploy_utils import (
+from utils import (
     load_contract,
     deploy_contract,
     dump_abi,
@@ -18,7 +18,7 @@ def main():
     try:
         _, chain_name, view_token_addr, view_auth_addr = sys.argv
     except ValueError:
-        print("Usage:\n python deploy.py "
+        print("Usage:\n python bounty_rewards.py "
               "chain_name view_token_addr view_auth_addr")
         return
 
