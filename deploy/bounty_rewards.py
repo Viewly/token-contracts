@@ -1,14 +1,21 @@
 import sys
 
 from populus import Project
-from deploy_utils import load_contract, deploy_contract, dump_abi, authority_permit_any
+from utils import (
+    load_contract,
+    deploy_contract,
+    dump_abi,
+    authority_permit_any,
+    ensure_working_dir,
+)
 
+working_dir = ensure_working_dir()
 
 def main():
     try:
-        _, chain_name, view_token_addr, view_auth_addr, *_ = sys.argv
+        _, chain_name, view_token_addr, view_auth_addr = sys.argv
     except ValueError:
-        print("Usage:\n python deploy.py "
+        print("Usage:\n python bounty_rewards.py "
               "chain_name view_token_addr view_auth_addr")
         return
 
@@ -29,7 +36,7 @@ def main():
         authority_permit_any(chain, view_auth, bounty.address, view_token.address)
         print('ViewlyBountyRewards is permitted to use ViewToken')
 
-        print('Writing ABIs to ./build')
+        print(f'Writing ABIs to {working_dir / "build"}')
         dump_abi(bounty, 'build/viewly_bounty_rewards.json')
 
         print('All done!')
