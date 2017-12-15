@@ -2,6 +2,18 @@ from populus.chain.base import BaseChain
 from populus.utils.wait import wait_for_transaction_receipt
 from web3 import Web3
 import json
+import os
+import pathlib
+
+def ensure_working_dir() -> pathlib.Path:
+    """ Ensure that the deployment scripts default to
+    the project root as the working dir.
+    """
+    wd = pathlib.Path.cwd()
+    if wd.parts[-1] == 'deploy':
+        wd = wd.parent
+        os.chdir(wd)
+    return wd
 
 def load_contract(chain: BaseChain, contract_name, address):
     contract, _ = chain.provider.get_or_deploy_contract(contract_name)

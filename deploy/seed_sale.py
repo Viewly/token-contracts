@@ -1,18 +1,15 @@
-import os
 import sys
-import pathlib
 
 from populus import Project
 from utils import (
     deploy_contract,
     dump_abi,
     authority_permit_any,
-    check_succesful_tx
+    check_succesful_tx,
+    ensure_working_dir,
 )
 
-parent_dir = (pathlib.Path.cwd() / '..').resolve()
-os.chdir(parent_dir)
-
+working_dir = ensure_working_dir()
 
 def main():
     # Chain must be preconfigured in populus.json
@@ -48,7 +45,7 @@ def main():
         authority_permit_any(chain, view_auth, sale.address, view_token.address)
         print('ViewlySeedSale is permitted to use ViewToken')
 
-        print(f'Writing ABIs to {parent_dir / "build"}')
+        print(f'Writing ABIs to {working_dir / "build"}')
         dump_abi(view_auth, 'build/view_auth_abi.json')
         dump_abi(view_token, 'build/view_token_abi.json')
         dump_abi(sale, 'build/viewly_seed_sale_abi.json')
