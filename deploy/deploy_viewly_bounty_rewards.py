@@ -1,4 +1,6 @@
+import os
 import sys
+import pathlib
 
 from populus import Project
 from deploy_utils import (
@@ -8,10 +10,13 @@ from deploy_utils import (
     authority_permit_any,
 )
 
+parent_dir = (pathlib.Path.cwd() / '..').resolve()
+os.chdir(parent_dir)
+
 
 def main():
     try:
-        _, chain_name, view_token_addr, view_auth_addr, *_ = sys.argv
+        _, chain_name, view_token_addr, view_auth_addr = sys.argv
     except ValueError:
         print("Usage:\n python deploy.py "
               "chain_name view_token_addr view_auth_addr")
@@ -34,7 +39,7 @@ def main():
         authority_permit_any(chain, view_auth, bounty.address, view_token.address)
         print('ViewlyBountyRewards is permitted to use ViewToken')
 
-        print('Writing ABIs to ./build')
+        print(f'Writing ABIs to {parent_dir / "build"}')
         dump_abi(bounty, 'build/viewly_bounty_rewards.json')
 
         print('All done!')

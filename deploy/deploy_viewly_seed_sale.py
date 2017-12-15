@@ -1,13 +1,23 @@
+import os
 import sys
+import pathlib
 
 from populus import Project
-from deploy_utils import deploy_contract, dump_abi, authority_permit_any, check_succesful_tx
+from deploy_utils import (
+    deploy_contract,
+    dump_abi,
+    authority_permit_any,
+    check_succesful_tx
+)
+
+parent_dir = (pathlib.Path.cwd() / '..').resolve()
+os.chdir(parent_dir)
 
 
 def main():
     # Chain must be preconfigured in populus.json
     try:
-        _, chain_name, beneficiary, *_ = sys.argv
+        _, chain_name, beneficiary = sys.argv
     except ValueError:
         print("Usage:\n python deploy.py chain_name beneficiary_address")
         return
@@ -38,7 +48,7 @@ def main():
         authority_permit_any(chain, view_auth, sale.address, view_token.address)
         print('ViewlySeedSale is permitted to use ViewToken')
 
-        print('Writing ABIs to ./build')
+        print(f'Writing ABIs to {parent_dir / "build"}')
         dump_abi(view_auth, 'build/view_auth_abi.json')
         dump_abi(view_token, 'build/view_token_abi.json')
         dump_abi(sale, 'build/viewly_seed_sale_abi.json')
