@@ -30,7 +30,7 @@ contract MintTokensSimple is DSAuth, DSMath {
 
     event LogPayment(
         address recipient,
-        uint amount,
+        uint tokens,
         Bucket bucket
     );
 
