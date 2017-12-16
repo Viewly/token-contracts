@@ -49,6 +49,13 @@ def recipient2(accounts) -> str:
 def test_init(chain, instance, token):
     assert is_same_address(instance.call().viewToken(), token.address)
 
+    category = lambda bucket: instance.call().categories(bucket)
+    million = 1_000_000
+    assert category(Bucket.Founders)[0] == to_wei(18 * million, 'ether')
+    assert category(Bucket.Supporters)[0] == to_wei(9 * million, 'ether')
+    assert category(Bucket.Creators)[0] == to_wei(20 * million, 'ether')
+    assert category(Bucket.Bounties)[0] == to_wei(3 * million, 'ether')
+
 def test_mint(chain, instance, token, recipient, recipient2):
     category = lambda bucket: instance.call().categories(bucket)
 
@@ -79,6 +86,11 @@ def test_mint_fails_after_cap_reached(chain, instance, token, recipient):
     # rewards cannot be distributed any more after cap is reached
     with pytest.raises(TransactionFailed):
         instance.transact().mint(recipient, 1, Bucket.Founders)
+
+def test_mint_fails_when_bucket_invalid(chain, instance, token, recipient):
+    invalid_bucket = 4  # Bucket enum is 0-4 only
+    with pytest.raises(TransactionFailed):
+        instance.transact().mint(recipient, 1, invalid_bucket)
 
 def test_mint_fails_when_not_authorized(chain, instance, token, recipient):
     # sendTokenReward cannot be called by a random user
