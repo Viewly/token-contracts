@@ -71,10 +71,3 @@ python deploy/seed_sale.py rinkeby "0xcbb09f94680f10887f1c358df9aea5c425a1f0b8"
 parity --light --chain=kovan --ui-port 8080 ui
 ```
 
-## Contract Viewer
-After deploying to testnet, you can run the web app to interact with the contract:
-```
-cd app
-export FLASK_APP=src/server.py
-flask run
-```
