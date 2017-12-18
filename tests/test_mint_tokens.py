@@ -7,7 +7,7 @@ from ethereum.tester import TransactionFailed
 
 from helpers import deploy_contract
 
-contract_name = 'MintTokensSimple'
+contract_name = 'MintTokens'
 
 class Bucket:
     Founders   = 0

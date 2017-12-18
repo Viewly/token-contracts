@@ -11,7 +11,7 @@ from utils import (
 
 working_dir = ensure_working_dir()
 
-contract_name = 'MintTokensSimple'
+contract_name = 'MintTokens'
 
 def main():
     try:

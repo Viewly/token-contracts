@@ -8,7 +8,7 @@ import "./dappsys/token.sol";
 import "./dappsys/auth.sol";
 
 /*
-   MintTokens is authoried to mint VIEW Tokens for distribution
+   MintTokens is authorized to mint VIEW Tokens for distribution
    within the constraints set in the Viewly Whitepaper.
  */
 contract MintTokens is DSAuth, DSMath {
@@ -25,18 +25,13 @@ contract MintTokens is DSAuth, DSMath {
         uint amountMinted;
     }
 
-    struct Payment {
-        Bucket bucket;
-        uint amount;
-    }
-    mapping (address => Payment[]) public payments;
-
     DSToken public viewToken;
     Category[4] public categories;
 
     event LogPayment(
         address recipient,
-        Payment payment
+        uint tokens,
+        Bucket bucket
     );
 
     function MintTokens(DSToken viewToken_) {
@@ -54,17 +49,14 @@ contract MintTokens is DSAuth, DSMath {
         Category category = categories[uint8(bucket)];
         require(add(tokens, category.amountMinted) <= category.categoryLimit);
 
-        Payment memory payment = Payment({bucket: bucket, amount: tokens});
-        payments[recipient].push(payment);  // costs lots of GAS!
         categories[uint8(bucket)].amountMinted += tokens;
-
         viewToken.mint(recipient, tokens);
-        LogPayment(recipient, payment);
+        LogPayment(recipient, tokens, bucket);
     }
 
     function suicide(address addr) auth {
-        // this will delete `payments` lookup, so we may want to keep it
-        // a better way to kill this contract is to remove its authority
+        // suicide action should be coupled with removal of this
+        // version of MintTokens from View token authority.
         selfdestruct(addr);
     }
 }
