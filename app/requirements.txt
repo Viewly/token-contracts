@@ -1,4 +1,0 @@
-populus>=2.0.1
-flask
-funcy
-toolz
