@@ -32,14 +32,18 @@ def main():
         print('ViewAuthorithy address is', view_auth.address)
 
         print(f'Deploying {contract_name}.sol')
-        bounty = deploy_contract(chain, owner, contract_name, args=[view_token.address])
-        print(f'{contract_name} address is', bounty.address)
+        mint_tokens = deploy_contract(chain, owner, contract_name, args=[view_token.address])
+        print(f'{contract_name} address is', mint_tokens.address)
 
-        authority_permit_any(chain, view_auth, bounty.address, view_token.address)
+        authority_permit_any(
+            chain=chain,
+            authority=view_auth,
+            src_address=mint_tokens.address,
+            dest_address=view_token.address)
         print(f'{contract_name} is permitted to use ViewToken')
 
         print(f'Writing ABIs to {working_dir / "build"}')
-        dump_abi(bounty, f'build/{contract_name}.json')
+        dump_abi(mint_tokens, f'build/{contract_name}.json')
 
         print('All done!')
 
