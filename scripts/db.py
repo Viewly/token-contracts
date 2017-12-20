@@ -4,7 +4,7 @@ from utils import script_source_dir
 
 def init_db(db_path):
     with sqlite3.connect(db_path) as conn:
-        db_schema_path = script_source_dir() / 'schema.sql'
+        db_schema_path = script_source_dir() / 'sql' / 'txs_schema.sql'
         schema = open(db_schema_path, 'r').read()
         conn.executescript(schema)
 
