@@ -22,7 +22,8 @@ def main():
         return
 
     with Project().get_chain(chain_name) as chain:
-        print(f"Head block is {chain.web3.eth.blockNumber} on the {chain_name} chain")
+        print(f"Head block is {chain.web3.eth.blockNumber}"
+              "on the {chain_name} chain")
 
         owner = chain.web3.eth.coinbase
         view_token = load_contract(chain, 'DSToken', view_token_addr)
@@ -32,7 +33,11 @@ def main():
         print('ViewAuthorithy address is', view_auth.address)
 
         print(f'Deploying {contract_name}.sol')
-        mint_tokens = deploy_contract(chain, owner, contract_name, args=[view_token.address])
+        mint_tokens = deploy_contract(
+            chain=chain,
+            owner=owner,
+            contract_name=contract_name,
+            args=[view_token.address])
         print(f'{contract_name} address is', mint_tokens.address)
 
         authority_permit_any(
