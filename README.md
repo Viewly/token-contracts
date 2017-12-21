@@ -24,7 +24,7 @@ pytest tests/
 
 To deploy the contract(s) run their deployment script:
 ```
-python deploy/seed_sale.py <chain> <beneficiary_address>
+python deploy/seed_sale.py tester <args...>
 ```
 
 ## Running on testrpc
@@ -35,7 +35,7 @@ testrpc-py
 
 Then, we can deploy contracts by providing `testrpc` as chain, for example:
 ```
-python deploy/seed_sale.py testrpc 0xabc...d
+python deploy/seed_sale.py testrpc <args...>
 ```
 
 
@@ -45,25 +45,19 @@ and send some `ropsten` tokens to it:
 ```
 geth --testnet account new
 ```
-*The default password used by the deployment script is `test`*.
 
 To deploy the contracts to the testnet (Ropsten),
 make sure you have local `geth` running first:
 ```
-geth --testnet --etherbase "0x25b99234a1d2e37fe340e8f9046d0cf0d9558c58"
+geth --testnet --fast --etherbase "0x25b99234a1d2e37fe340e8f9046d0cf0d9558c58"
 ```
-*The etherbase account is the main account that will be creating the contract.*
+*The etherbase account is the `owner` in the deployer scripts.*
 
 
 Then you can deploy the contract to testnet with given multisig address as
 beneficiary with:
 ```
-python deploy/seed_sale.py ropsten "0xcbb09f94680f10887f1c358df9aea5c425a1f0b8"
-```
-
-Similarily, you can also deploy to other configured chains such as rinkeyb:
-```
-python deploy/seed_sale.py rinkeby "0xcbb09f94680f10887f1c358df9aea5c425a1f0b8"
+python deploy/seed_sale.py ropsten <args...>
 ```
 
 ## Running on a testnet (parity)
