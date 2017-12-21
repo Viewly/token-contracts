@@ -11,6 +11,8 @@ from db import (
     import_txs,
     query_all,
     update_txid,
+    mark_tx_as_successful,
+    mark_tx_for_retry,
 )
 
 roles = 'Founders Supporters Creators Bounties'.split(' ')
@@ -61,7 +63,7 @@ def get_chain(chain_name: str, infura_key='') -> web3.Web3:
 def get_mint_tokens_instance(
     abi_path,
     contract_address,
-    chain_name='tester', **kwargs):
+    chain_name='tester', **kwargs) -> web3.Eth.Contract:
     """ Reconstruct a contract instance from its address and ABI."""
     abi = load_json(abi_path)
     w3 = get_chain(chain_name, **kwargs)
@@ -158,14 +160,16 @@ def cli_payout(db_file, chain_name, contract_address, abi_path):
     assert instance.address == contract_address
 
     q = """
-    SELECT id, recipient, amount, bucket FROM txs WHERE txid IS NULL;
+    SELECT id, recipient, amount, bucket
+     FROM txs
+     WHERE txid IS NULL AND success = 0;
     """
     for payout in query_all(db_file, q):
-        id, recipient, amount, bucket = payout
+        id_, recipient, amount, bucket = payout
         txid = mint_tokens(
             instance, recipient, amount, bucket,
         )
-        update_txid(db_file, id, txid)
+        update_txid(db_file, id_, txid)
 
 
 @cli.command(name='verify')
@@ -174,10 +178,18 @@ def cli_payout(db_file, chain_name, contract_address, abi_path):
 def cli_verify(db_file, chain_name):
     """Verify paid tx's in the specified database."""
     q = """
-    SELECT * FROM txs WHERE success = 0 AND txid IS NOT NULL;
+    SELECT id, txid
+     FROM txs
+     WHERE success = 0 AND txid IS NOT NULL;
     """
-    txs = query_all(db_file, q)
-    print(txs)
+    for id_, txid in query_all(db_file, q):
+        if is_tx_successful(txid):
+            mark_tx_as_successful(db_file, id_)
+        else:
+            reason = 'Out of Gas' if is_tx_out_of_gas(txid) else 'Fail'
+            if click.confirm(f'{txid} has failed ({reason}). Retry?'):
+                mark_tx_for_retry(db_file, id_)
+
 
 if __name__ == '__main__':
     cli()

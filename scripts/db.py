@@ -32,3 +32,21 @@ def update_txid(db_path, id_, txid):
         cur = conn.cursor()
         cur.execute(q, {'id': id_, txid: txid})
         conn.commit()
+
+def mark_tx_as_successful(db_path, id_):
+    q = """
+    UPDATE txs SET success = 1 WHERE id = :id
+    """
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.cursor()
+        cur.execute(q, {'id': id_})
+        conn.commit()
+
+def mark_tx_for_retry(db_path, id_):
+    q = """
+    UPDATE txs SET success = 0, txid = NULL WHERE id = :id
+    """
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.cursor()
+        cur.execute(q, {'id': id_})
+        conn.commit()
