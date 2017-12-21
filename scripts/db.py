@@ -17,3 +17,18 @@ def import_txs(db_path, txs: dict):
     with sqlite3.connect(db_path) as conn:
         cur = conn.cursor()
         cur.executemany(q, txs)
+
+def query_all(db_path, query):
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.cursor()
+        cur.execute(query)
+        return cur.fetchall()
+
+def update_txid(db_path, id_, txid):
+    q = """
+    UPDATE txs SET txid = :txid WHERE id = :id
+    """
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.cursor()
+        cur.execute(q, {'id': id_, txid: txid})
+        conn.commit()
