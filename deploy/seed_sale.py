@@ -7,6 +7,7 @@ from utils import (
     authority_permit_any,
     check_succesful_tx,
     ensure_working_dir,
+    unlock_wallet,
 )
 
 working_dir = ensure_working_dir()
@@ -25,6 +26,9 @@ def main():
 
         # The address who will be the owner of the contracts
         owner = web3.eth.coinbase
+        if chain_name not in ['tester', 'testrpc']:
+            unlock_wallet(chain.web3, owner)
+
         print('Owner address is', owner)
         print('Beneficiary address is', beneficiary)
 

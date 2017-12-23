@@ -7,6 +7,7 @@ from utils import (
     dump_abi,
     authority_permit_any,
     ensure_working_dir,
+    unlock_wallet,
 )
 
 working_dir = ensure_working_dir()
@@ -22,10 +23,13 @@ def main():
         return
 
     with Project().get_chain(chain_name) as chain:
-        print(f"Head block is {chain.web3.eth.blockNumber}"
-              "on the {chain_name} chain")
+        print(f"Head block is {chain.web3.eth.blockNumber} "
+              f"on the {chain_name} chain")
 
         owner = chain.web3.eth.coinbase
+        if chain_name not in ['tester', 'testrpc']:
+            unlock_wallet(chain.web3, owner)
+
         view_token = load_contract(chain, 'DSToken', view_token_addr)
         view_auth = load_contract(chain, 'DSGuard', view_auth_addr)
         print('Owner address is', owner)

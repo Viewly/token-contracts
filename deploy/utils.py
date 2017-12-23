@@ -63,3 +63,12 @@ def authority_permit_any(chain: BaseChain, authority, src_address, dest_address)
         authority.call().ANY()
     )
     return check_succesful_tx(chain.web3, tx)
+
+def unlock_wallet(web3, address):
+    from getpass import getpass
+    unlocked = False
+    while not unlocked:
+        pw = getpass(f'Password to unlock {address}: ')
+        if not pw:
+            break
+        unlocked = web3.personal.unlockAccount(address, pw)
