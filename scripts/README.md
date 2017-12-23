@@ -1,8 +1,24 @@
+## csv2json.py
+This script will convert .csv files from Google Sheet
+to `distribute.py` compliant json.
+
+Example usage:
+```
+python csv2json.py \
+    example_data/payout-sheet.csv \
+    example_data/address-book.csv \
+        > payouts.json
+```
+
+*The .csv files can be found
+[here](https://docs.google.com/spreadsheets/d/1cBV168xNWoQbcqnIjiRi3vN0Lf6d1-i9GDIQ-1HrkoA/edit?pli=1#gid=1500784426),
+by exporting tabs "Payout Sheet" and "Address Book"*
+
 ## distribute.py
 
 Import a payouts.json file into its own database:
 ```
-python distribute.py import-txs ../payments-december.json december.db
+python distribute.py import-txs payouts.json december.db
 ```
 
 Issue Payouts:
