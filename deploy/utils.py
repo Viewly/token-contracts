@@ -16,8 +16,8 @@ def ensure_working_dir() -> pathlib.Path:
     return wd
 
 def load_contract(chain: BaseChain, contract_name, address):
-    contract, _ = chain.provider.get_or_deploy_contract(contract_name)
-    return contract
+    contract_factory = chain.provider.get_contract_factory(contract_name)
+    return contract_factory(address=address)
 
 def deploy_contract(chain: BaseChain, owner, contract_name, args=[]):
     contract, _ = chain.provider.get_or_deploy_contract(
@@ -46,6 +46,17 @@ def check_succesful_tx(web3: Web3, txid: str, timeout=600) -> dict:
     return receipt
 
 def authority_permit_any(chain: BaseChain, authority, src_address, dest_address):
+    """  Grant *all* priviliges to a specific address or contract via DSGuard proxy.
+
+    Note:
+        DSGuard (authority) is authorized to perform actions on the View Token.
+
+    Args:
+        chain: base chain
+        authority: Address of our DSGuard Proxy.
+        src_address:  Contract or address being granted priviliges.
+        dest_address: Contract where src_address will get priviliges on.
+    """
     tx = authority.transact().permit(
         src_address,
         dest_address,
