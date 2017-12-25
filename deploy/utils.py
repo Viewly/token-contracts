@@ -27,6 +27,10 @@ def deploy_contract(chain: BaseChain, owner, contract_name, args=[]):
     )
     return contract
 
+def write_json(data, filename):
+    with open(filename, 'w') as f:
+        f.write(json.dumps(data, indent=2))
+
 def dump_abi(contract, filename):
     with open(filename, 'w') as f:
         f.write(json.dumps(contract.abi))
