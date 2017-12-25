@@ -6,13 +6,13 @@ from utils import (
     write_json,
     authority_permit_any,
     ensure_working_dir,
-    unlock_wallet,
     confirm_deployment,
 )
+from base_deployer import BaseDeployer
 
 working_dir = ensure_working_dir()
 
-class MintTokens():
+class MintTokens(BaseDeployer):
     __target__ = 'MintTokens'
     __dependencies__ = ['DSGuard', 'DSToken']
 
@@ -22,7 +22,7 @@ class MintTokens():
                  owner=None,
                  instance=None,
                  **kwargs):
-        """ Initialize the contract.
+        """ Initialize the deployer.
 
         Args:
             chain_name: Name of ETH chain (ie. mainnet, ropsten...)
@@ -30,16 +30,7 @@ class MintTokens():
             owner: `from` address to transact with (`msg.sender` in contracts)
             instance: A fully loaded instance of this contract.
         """
-        self.chain_name = chain_name
-        assert chain_name in ['mainnet', 'ropsten', 'tester', 'testrpc'], \
-                f"Invalid Chain Name {chain_name}"
-
-        self.chain = chain
-        self.web3 = self.chain.web3
-        self.owner = owner or self.web3.eth.coinbase
-
-        if self.chain_name not in ['tester', 'testrpc']:
-            unlock_wallet(self.web3, self.owner)
+        super().__init__(chain_name, chain, owner)
 
         # contract instances
         self.instance = instance

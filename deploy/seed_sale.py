@@ -6,14 +6,14 @@ from utils import (
     authority_permit_any,
     check_succesful_tx,
     ensure_working_dir,
-    unlock_wallet,
     confirm_deployment,
 )
+from base_deployer import BaseDeployer
 
 working_dir = ensure_working_dir()
 
 
-class SeedSale():
+class SeedSale(BaseDeployer):
     __target__ = 'ViewlySeedSale'
 
     def __init__(self, chain_name, chain, owner=None, **kwargs):
@@ -25,18 +25,9 @@ class SeedSale():
             owner: `from` address to transact with (`msg.sender` in contracts)
 
         """
-        self.chain_name = chain_name
-        assert chain_name in ['mainnet', 'ropsten', 'tester', 'testrpc'], \
-                f"Invalid Chain Name {chain_name}"
+        super().__init__(chain_name, chain, owner)
 
-        self.chain = chain
-        self.web3 = self.chain.web3
-        self.owner = owner or self.web3.eth.coinbase
-
-        if self.chain_name not in ['tester', 'testrpc']:
-            unlock_wallet(self.web3, self.owner)
-
-        # contract instances
+        # multi-contract instances
         self.instances = {
             'DSGuard': kwargs.get('DSGuard'),
             'DSToken': kwargs.get('DSToken'),

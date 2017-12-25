@@ -32,10 +32,6 @@ def write_json(data, filename):
     with open(filename, 'w') as f:
         f.write(json.dumps(data, indent=2))
 
-def dump_abi(contract, filename):
-    with open(filename, 'w') as f:
-        f.write(json.dumps(contract.abi))
-
 def check_succesful_tx(web3: Web3, txid: str, timeout=600) -> dict:
     """See if transaction went through (Solidity code did not throw).
 
