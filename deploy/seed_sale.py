@@ -7,6 +7,7 @@ from utils import (
     check_succesful_tx,
     ensure_working_dir,
     unlock_wallet,
+    confirm_deployment,
 )
 
 working_dir = ensure_working_dir()
@@ -89,9 +90,6 @@ class SeedSale():
             if instance:
                 write_json(instance.abi, f'build/{name}.abi.json')
 
-def confirm_deployment(chain_name):
-    return chain_name != 'mainnet' \
-           or click.confirm(f'Deploy {SeedSale.__target__}?')
 
 @click.command()
 @click.argument('chain-name', type=str)
@@ -105,7 +103,7 @@ def deploy(chain_name, beneficiary):
         print('Owner address is', deployer.owner)
         print('Beneficiary address is', beneficiary)
 
-        if confirm_deployment(chain_name):
+        if confirm_deployment(chain_name, deployer.__target__):
             deployer.deploy(beneficiary)
             deployer.dump_abis()
 

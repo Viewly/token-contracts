@@ -4,6 +4,7 @@ from web3 import Web3
 import json
 import os
 import pathlib
+import click
 
 def ensure_working_dir() -> pathlib.Path:
     """ Ensure that the deployment scripts default to
@@ -76,3 +77,7 @@ def unlock_wallet(web3, address):
         if not pw:
             break
         unlocked = web3.personal.unlockAccount(address, pw)
+
+def confirm_deployment(chain_name, deploy_target):
+    return chain_name != 'mainnet' \
+           or click.confirm(f'Deploy {deploy_target}?')
