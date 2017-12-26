@@ -7,7 +7,7 @@ from ethereum.tester import TransactionFailed
 
 from helpers import deploy_contract
 
-contract_name = 'MintTokens'
+contract_name = 'ViewlyTokenMintage'
 
 class Bucket:
     Founders   = 0

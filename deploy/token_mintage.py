@@ -10,8 +10,8 @@ from base_deployer import BaseDeployer
 
 working_dir = ensure_working_dir()
 
-class MintTokens(BaseDeployer):
-    __target__ = 'MintTokens'
+class TokenMintage(BaseDeployer):
+    __target__ = 'ViewlyTokenMintage'
     __dependencies__ = ['DSGuard', 'DSToken']
 
     def __init__(self,
@@ -45,7 +45,7 @@ class MintTokens(BaseDeployer):
             raise ValueError(f"Instance already deployed at {self.instance.address}")
 
         self.instance = self.deploy_contract(
-            contract_name='MintTokens',
+            contract_name='ViewlyTokenMintage',
             args=[self.dependencies['DSToken'].address])
         print(f'{self.__target__} address is', self.instance.address)
 
@@ -78,7 +78,7 @@ class MintTokens(BaseDeployer):
 @click.argument('ds-guard-addr', type=str)
 @click.argument('ds-token-addr', type=str)
 def deploy(chain_name, owner, ds_guard_addr, ds_token_addr):
-    """ Deploy MintTokens """
+    """ Deploy ViewlyTokenMintage """
     with Project().get_chain(chain_name) as chain:
         ds_token = load_contract(chain, 'DSToken', ds_token_addr)
         ds_guard = load_contract(chain, 'DSGuard', ds_guard_addr)
@@ -86,7 +86,7 @@ def deploy(chain_name, owner, ds_guard_addr, ds_token_addr):
             'DSGuard': ds_guard,
             'DSToken': ds_token,
         }
-        deployer = MintTokens(chain_name, chain, owner=owner, **deps)
+        deployer = TokenMintage(chain_name, chain, owner=owner, **deps)
         print(f'Head block is {deployer.web3.eth.blockNumber} '
               f'on the "{chain_name}" chain')
         print('Owner address is', deployer.owner)

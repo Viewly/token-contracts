@@ -8,10 +8,10 @@ import "./dappsys/token.sol";
 import "./dappsys/auth.sol";
 
 /*
-   MintTokens is authorized to mint VIEW Tokens for distribution
+   ViewlyTokenMintage is authorized to mint VIEW Tokens for distribution
    within the constraints set in the Viewly Whitepaper.
  */
-contract MintTokens is DSAuth, DSMath {
+contract ViewlyTokenMintage is DSAuth, DSMath {
 
     enum Bucket {
         Founders,
@@ -34,7 +34,7 @@ contract MintTokens is DSAuth, DSMath {
         Bucket bucket
     );
 
-    function MintTokens(DSToken viewToken_) {
+    function ViewlyTokenMintage(DSToken viewToken_) {
         viewToken = viewToken_;
 
         uint MILLION = 1000000 ether;
@@ -56,7 +56,7 @@ contract MintTokens is DSAuth, DSMath {
 
     function suicide(address addr) auth {
         // suicide action should be coupled with removal of this
-        // version of MintTokens from View token authority.
+        // version of ViewlyTokenMintage from View token authority.
         selfdestruct(addr);
     }
 }

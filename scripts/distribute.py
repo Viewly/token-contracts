@@ -75,7 +75,7 @@ def txs_from_file(filename: str) -> dict:
         validated_payouts,
     )
 
-def get_mint_tokens_instance(
+def get_token_mintage_instance(
     w3: web3.Web3,
     abi_path: str,
     contract_address: str) -> web3.eth.Contract:
@@ -93,7 +93,7 @@ def mint_tokens(
     """ Call `mint` function on target contract.
 
     Args:
-        instance: A MintTokens live contract instance (fully initialized).
+        instance: A ViewlyTokenMintage live and initialized contract instance.
         owner: An authorized Ethereum account to call the minting contract from.
         recipient: Address of VIEW Token Recipient.
         amount: Amount of VIEW Tokens to mint.
@@ -165,7 +165,7 @@ def cli_import_txs(payout_sheet_file, db_file):
               help='Account to call the contract from')
 @click.option('--contract-address', prompt=True, type=str,
               help='Address of the token minting contract')
-@click.option('--abi-path', default='build/MintTokens.abi.json',
+@click.option('--abi-path', default='build/viewly_token_mintage.abi.json',
               type=click.Path(exists=True),
               help='ABI of the token minting contract')
 @click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
@@ -184,7 +184,7 @@ def cli_payout(
     if chain_name not in ['tester', 'testrpc']:
         unlock_wallet(w3, owner)
 
-    instance = get_mint_tokens_instance(w3, abi_path, contract_address)
+    instance = get_token_mintage_instance(w3, abi_path, contract_address)
     assert instance.address.lower() == contract_address.lower()
 
     q = """
