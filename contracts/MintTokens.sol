@@ -8,12 +8,13 @@ import "./dappsys/token.sol";
 import "./dappsys/auth.sol";
 
 /*
-   MintTokens is authorized to mint VIEW Tokens for distribution
-   within the constraints set in the Viewly Whitepaper.
+   ViewlyTokensMintage contract is used to mint VIEW Tokens within the
+   constraints set in the Viewly Whitepaper. It tracks total minted tokens for
+   each distribution category.
  */
-contract MintTokens is DSAuth, DSMath {
+contract ViewlyTokensMintage is DSAuth, DSMath {
 
-    enum Bucket {
+    enum CategoryId {
         Founders,
         Supporters,
         Creators,
@@ -21,42 +22,43 @@ contract MintTokens is DSAuth, DSMath {
     }
 
     struct Category {
-        uint categoryLimit;
+        uint mintLimit;
         uint amountMinted;
     }
 
     DSToken public viewToken;
     Category[4] public categories;
 
-    event LogPayment(
+    event TokensMinted(
         address recipient,
         uint tokens,
-        Bucket bucket
+        CategoryId category
     );
 
-    function MintTokens(DSToken viewToken_) {
+    function ViewlyTokensMintage(DSToken viewToken_) {
         viewToken = viewToken_;
 
         uint MILLION = 1000000 ether;
-        categories[uint8(Bucket.Founders)]   = Category(18 * MILLION, 0 ether);
-        categories[uint8(Bucket.Supporters)] = Category(9 * MILLION, 0 ether);
-        categories[uint8(Bucket.Creators)]   = Category(20 * MILLION, 0 ether);
-        categories[uint8(Bucket.Bounties)]   = Category(3 * MILLION, 0 ether);
+        categories[uint8(CategoryId.Founders)]   = Category(18 * MILLION, 0 ether);
+        categories[uint8(CategoryId.Supporters)] = Category(9 * MILLION, 0 ether);
+        categories[uint8(CategoryId.Creators)]   = Category(20 * MILLION, 0 ether);
+        categories[uint8(CategoryId.Bounties)]   = Category(3 * MILLION, 0 ether);
     }
 
-    function mint(address recipient, uint tokens, Bucket bucket) auth {
+    function mint(address recipient, uint tokens, CategoryId categoryId) auth {
         require(tokens > 0);
-        Category category = categories[uint8(bucket)];
-        require(add(tokens, category.amountMinted) <= category.categoryLimit);
+        Category category = categories[uint8(categoryId)];
+        require(add(tokens, category.amountMinted) <= category.mintLimit);
 
-        categories[uint8(bucket)].amountMinted += tokens;
+        categories[uint8(categoryId)].amountMinted += tokens;
         viewToken.mint(recipient, tokens);
-        LogPayment(recipient, tokens, bucket);
+        TokensMinted(recipient, tokens, categoryId);
     }
 
-    function suicide(address addr) auth {
-        // suicide action should be coupled with removal of this
-        // version of MintTokens from View token authority.
+    /* Selfdestruct action should be coupled with removal of this
+       version of ViewlyTokensMintage from View token authority.
+     */
+    function selfdestruct(address addr) auth {
         selfdestruct(addr);
     }
 }
