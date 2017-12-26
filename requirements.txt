@@ -1,2 +1,4 @@
 populus>=2.0.1
 pytest
+toolz
+click

@@ -1,3 +1,6 @@
+# sqlite databases
+*.db
+
 ### App Specific
 build/
 .cache/
