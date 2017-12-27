@@ -33,10 +33,15 @@ python distribute.py verify december.db
 
 ---
 
-## Sqlite
+### Sqlite
 Check the transactions in sqlite:
 ```
 ~/scripts % sqlite3 december.db "select * from txs;"
 1|0x9cd47749bcd550ce4d2590a82fad16eec9d007b7|1000.0|0||0
 2|0x9cd47749bcd550ce4d2590a82fad16eec9d007b7|100.0|1||0
+```
+
+### Exporting the table as .csv
+```
+sqlite3 -header -csv december.db "select * from txs;" > out.csv
 ```
