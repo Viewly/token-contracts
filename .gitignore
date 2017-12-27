@@ -1,8 +1,13 @@
+# Populus deployment history
+registrar.json
+
+# Contract ABI's
+build/
+
 # sqlite databases
 *.db
 
 ### App Specific
-build/
 .cache/
 
 
