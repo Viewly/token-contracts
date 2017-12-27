@@ -63,7 +63,7 @@ def get_chain(chain_name: str, infura_key='') -> web3.Web3:
 def get_mint_tokens_instance(
     abi_path,
     contract_address,
-    chain_name='tester', **kwargs) -> web3.Eth.Contract:
+    chain_name='tester', **kwargs) -> web3.eth.Contract:
     """ Reconstruct a contract instance from its address and ABI."""
     abi = load_json(abi_path)
     w3 = get_chain(chain_name, **kwargs)
