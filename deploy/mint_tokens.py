@@ -2,7 +2,6 @@ import click
 from populus import Project
 from utils import (
     load_contract,
-    deploy_contract,
     write_json,
     authority_permit_any,
     ensure_working_dir,
@@ -46,9 +45,7 @@ class MintTokens(BaseDeployer):
         if self.instance:
             raise ValueError(f"Instance already deployed at {self.instance.address}")
 
-        self.instance = deploy_contract(
-            chain=self.chain,
-            owner=self.owner,
+        self.instance = self.deploy_contract(
             contract_name='MintTokens',
             args=[self.dependencies['DSToken'].address])
         print(f'{self.__target__} address is', self.instance.address)

@@ -16,23 +16,16 @@ def ensure_working_dir() -> pathlib.Path:
         os.chdir(wd)
     return wd
 
-def load_contract(chain: BaseChain, contract_name, address):
-    contract_factory = chain.provider.get_contract_factory(contract_name)
-    return contract_factory(address=address)
-
-def deploy_contract(chain: BaseChain, owner, contract_name, args=[]):
-    contract, _ = chain.provider.get_or_deploy_contract(
-        contract_name,
-        deploy_transaction={'from': owner},
-        deploy_args=args,
-    )
-    return contract
-
 def write_json(data, filename):
     with open(filename, 'w') as f:
         f.write(json.dumps(data, indent=2))
 
+def load_contract(chain: BaseChain, contract_name, address):
+    contract_factory = chain.provider.get_contract_factory(contract_name)
+    return contract_factory(address=address)
+
 def check_succesful_tx(web3: Web3, txid: str, timeout=600) -> dict:
+
     """See if transaction went through (Solidity code did not throw).
 
     :return: Transaction receipt

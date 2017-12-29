@@ -1,7 +1,6 @@
 import click
 from populus import Project
 from utils import (
-    deploy_contract,
     write_json,
     authority_permit_any,
     check_succesful_tx,
@@ -38,18 +37,13 @@ class SeedSale(BaseDeployer):
     def deploy(self, beneficiary: str):
         # ViewAuthority
         if not self.instances['DSGuard']:
-            self.instances['DSGuard'] = \
-                deploy_contract(self.chain, self.owner, 'DSGuard')
+            self.instances['DSGuard'] = self.deploy_contract('DSGuard')
             print(f"DSGuard address: {self.instances['DSGuard'].address}")
 
         # ViewToken
         if not self.instances['DSToken']:
             self.instances['DSToken'] = \
-                deploy_contract(
-                    self.chain,
-                    self.owner,
-                    'DSToken',
-                    args=['VIEW'])
+                self.deploy_contract('DSToken', args=['VIEW'])
 
             tx = self.instances['DSToken'] \
                 .transact({"from": self.owner}) \
@@ -60,9 +54,7 @@ class SeedSale(BaseDeployer):
         # Seed Sale
         if not self.instances['ViewlySeedSale']:
             self.instances['ViewlySeedSale'] = \
-                deploy_contract(
-                    self.chain,
-                    self.owner,
+                self.deploy_contract(
                     'ViewlySeedSale',
                     args=[self.instances['DSToken'].address, beneficiary])
 
@@ -74,6 +66,8 @@ class SeedSale(BaseDeployer):
             )
             print(f"ViewlySeedSale address: {self.instances['ViewlySeedSale'].address}")
 
+    def deprecate(self):
+        pass
 
     def dump_abis(self):
         print(f'Writing ABIs to {working_dir / "build"}')
