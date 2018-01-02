@@ -2,7 +2,6 @@ import click
 from populus import Project
 from utils import (
     write_json,
-    authority_permit_any,
     check_succesful_tx,
     ensure_working_dir,
     confirm_deployment,
@@ -37,17 +36,18 @@ class SeedSale(BaseDeployer):
     def deploy(self, beneficiary: str):
         # ViewAuthority
         if not self.instances['DSGuard']:
-            self.instances['DSGuard'] = self.deploy_contract('DSGuard')
+            self.instances['DSGuard'] = \
+                self.deploy_contract('DSGuard', gas=1_340_000)
             print(f"DSGuard address: {self.instances['DSGuard'].address}")
 
         # ViewToken
         if not self.instances['DSToken']:
             self.instances['DSToken'] = \
-                self.deploy_contract('DSToken', args=['VIEW'])
+                self.deploy_contract('DSToken', args=['VIEW'], gas=2_000_000)
 
             tx = self.instances['DSToken'] \
                 .transact({"from": self.owner}) \
-                .setAuthority(self.instances['DSToken'].address)
+                .setAuthority(self.instances['DSGuard'].address)
             check_succesful_tx(self.web3, tx)
             print(f"DSToken address: {self.instances['DSToken'].address}")
 
@@ -58,11 +58,10 @@ class SeedSale(BaseDeployer):
                     'ViewlySeedSale',
                     args=[self.instances['DSToken'].address, beneficiary])
 
-            authority_permit_any(
-                chain = self.chain,
+            self.authority_permit_any(
                 authority = self.instances['DSGuard'],
                 src_address = self.instances['ViewlySeedSale'].address,
-                dest_address = self.instances['DSToken'].address,
+                dst_address = self.instances['DSToken'].address,
             )
             print(f"ViewlySeedSale address: {self.instances['ViewlySeedSale'].address}")
 

@@ -39,25 +39,6 @@ def check_succesful_tx(web3: Web3, txid: str, timeout=600) -> dict:
     assert txinfo["gas"] != receipt["gasUsed"]
     return receipt
 
-def authority_permit_any(chain: BaseChain, authority, src_address, dest_address):
-    """  Grant *all* priviliges to a specific address or contract via DSGuard proxy.
-
-    Note:
-        DSGuard (authority) is authorized to perform actions on the View Token.
-
-    Args:
-        chain: base chain
-        authority: Address of our DSGuard Proxy.
-        src_address:  Contract or address being granted priviliges.
-        dest_address: Contract where src_address will get priviliges on.
-    """
-    tx = authority.transact().permit(
-        src_address,
-        dest_address,
-        authority.call().ANY()
-    )
-    return check_succesful_tx(chain.web3, tx)
-
 def unlock_wallet(web3, address):
     from getpass import getpass
     unlocked = False

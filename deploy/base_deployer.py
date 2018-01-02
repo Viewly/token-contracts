@@ -1,5 +1,6 @@
 from utils import (
     unlock_wallet,
+    check_succesful_tx,
 )
 
 class BaseDeployer:
@@ -34,9 +35,28 @@ class BaseDeployer:
         if 'gas' in kwargs:
             tx_props['gas'] = kwargs['gas']
 
-        contract, _ = self.chain.provider.get_or_deploy_contract(
+        contract, _ = self.chain.provider.deploy_contract(
             contract_name,
             deploy_transaction=tx_props,
             deploy_args=args,
         )
         return contract
+
+    def authority_permit_any(self, authority, src_address, dst_address):
+        """  Grant *all* priviliges to a specific address or contract via DSGuard proxy.
+
+        Note:
+            DSGuard (authority) is authorized to perform actions on the View Token.
+
+        Args:
+            authority: Address of our DSGuard Proxy.
+            src_address:  Contract or address being granted priviliges.
+            dest_address: Contract where src_address will get priviliges on.
+        """
+        tx_props = {'from': self.owner}
+        tx = authority.transact(tx_props).permit(
+            src_address,
+            dst_address,
+            authority.call().ANY()
+        )
+        return check_succesful_tx(self.web3, tx)

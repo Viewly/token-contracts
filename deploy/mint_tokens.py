@@ -3,7 +3,6 @@ from populus import Project
 from utils import (
     load_contract,
     write_json,
-    authority_permit_any,
     ensure_working_dir,
     confirm_deployment,
 )
@@ -50,11 +49,10 @@ class MintTokens(BaseDeployer):
             args=[self.dependencies['DSToken'].address])
         print(f'{self.__target__} address is', self.instance.address)
 
-        authority_permit_any(
-            chain=self.chain,
+        self.authority_permit_any(
             authority=self.dependencies['DSGuard'],
             src_address=self.instance.address,
-            dest_address=self.dependencies['DSToken'].address)
+            dst_address=self.dependencies['DSToken'].address)
 
     def deprecate(self):
         """ Destroy this contract, and clean up."""
@@ -74,23 +72,23 @@ class MintTokens(BaseDeployer):
 
 @click.command()
 @click.argument('chain-name', type=str)
-@click.argument('ds-token-addr', type=str)
 @click.argument('ds-guard-addr', type=str)
-def deploy(chain_name, ds_token_addr, ds_guard_addr):
+@click.argument('ds-token-addr', type=str)
+def deploy(chain_name, ds_guard_addr, ds_token_addr):
     """ Deploy MintTokens """
     with Project().get_chain(chain_name) as chain:
         ds_token = load_contract(chain, 'DSToken', ds_token_addr)
         ds_guard = load_contract(chain, 'DSGuard', ds_guard_addr)
         deps = {
             'DSGuard': ds_guard,
-            'DSToken': ds_guard,
+            'DSToken': ds_token,
         }
         deployer = MintTokens(chain_name, chain, **deps)
         print(f'Head block is {deployer.web3.eth.blockNumber} '
               f'on the "{chain_name}" chain')
         print('Owner address is', deployer.owner)
-        print('ViewToken address is', ds_token.address)
-        print('ViewAuthorithy address is', ds_guard.address)
+        print('DSGuard address is', ds_guard.address)
+        print('DSToken address is', ds_token.address)
 
         if confirm_deployment(chain_name, deployer.__target__):
             deployer.deploy()
