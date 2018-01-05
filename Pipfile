@@ -1,0 +1,17 @@
+[[source]]
+
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+
+[packages]
+
+populus = "==2.2.0"
+pytest = "*"
+toolz = "*"
+click = "*"
+
+
+[dev-packages]
+
