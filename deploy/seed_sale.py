@@ -76,12 +76,15 @@ class SeedSale(BaseDeployer):
 
 
 @click.command()
-@click.argument('chain-name', type=str)
+@click.option('--chain', 'chain_name', default='tester',
+              type=str, help='Name of ETH Chain')
+@click.option('--owner', default=None,
+              type=str, help='Account to deploy from')
 @click.argument('beneficiary', type=str)
-def deploy(chain_name, beneficiary):
+def deploy(chain_name, owner, beneficiary):
     """ Deploy ViewlySeedSale """
     with Project().get_chain(chain_name) as chain:
-        deployer = SeedSale(chain_name, chain)
+        deployer = SeedSale(chain_name, chain, owner=owner)
         print(f'Head block is {deployer.web3.eth.blockNumber} '
               f'on the "{chain_name}" chain')
         print('Owner address is', deployer.owner)

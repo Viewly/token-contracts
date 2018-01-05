@@ -24,7 +24,7 @@ pytest tests/
 
 To deploy the contract(s) run their deployment script:
 ```
-python deploy/seed_sale.py tester <args...>
+python deploy/seed_sale.py <args...>
 ```
 
 ## Running on testrpc
@@ -35,7 +35,7 @@ testrpc-py
 
 Then, we can deploy contracts by providing `testrpc` as chain, for example:
 ```
-python deploy/seed_sale.py testrpc <args...>
+python deploy/seed_sale.py --chain testrpc <args...>
 ```
 
 
@@ -57,7 +57,7 @@ geth --testnet --fast --etherbase "0x25b99234a1d2e37fe340e8f9046d0cf0d9558c58"
 Then you can deploy the contract to testnet with given multisig address as
 beneficiary with:
 ```
-python deploy/seed_sale.py ropsten <args...>
+python deploy/seed_sale.py --chain ropsten <args...>
 ```
 
 ## Running on a testnet (parity)

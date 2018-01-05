@@ -71,10 +71,13 @@ class MintTokens(BaseDeployer):
 
 
 @click.command()
-@click.argument('chain-name', type=str)
+@click.option('--chain', 'chain_name', default='tester',
+              type=str, help='Name of ETH Chain')
+@click.option('--owner', default=None,
+              type=str, help='Account to deploy from')
 @click.argument('ds-guard-addr', type=str)
 @click.argument('ds-token-addr', type=str)
-def deploy(chain_name, ds_guard_addr, ds_token_addr):
+def deploy(chain_name, owner, ds_guard_addr, ds_token_addr):
     """ Deploy MintTokens """
     with Project().get_chain(chain_name) as chain:
         ds_token = load_contract(chain, 'DSToken', ds_token_addr)
@@ -83,7 +86,7 @@ def deploy(chain_name, ds_guard_addr, ds_token_addr):
             'DSGuard': ds_guard,
             'DSToken': ds_token,
         }
-        deployer = MintTokens(chain_name, chain, **deps)
+        deployer = MintTokens(chain_name, chain, owner=owner, **deps)
         print(f'Head block is {deployer.web3.eth.blockNumber} '
               f'on the "{chain_name}" chain')
         print('Owner address is', deployer.owner)
