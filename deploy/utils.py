@@ -25,7 +25,6 @@ def load_contract(chain: BaseChain, contract_name, address):
     return contract_factory(address=address)
 
 def check_succesful_tx(web3: Web3, txid: str, timeout=600) -> dict:
-
     """See if transaction went through (Solidity code did not throw).
 
     :return: Transaction receipt
@@ -35,7 +34,11 @@ def check_succesful_tx(web3: Web3, txid: str, timeout=600) -> dict:
     receipt = wait_for_transaction_receipt(web3, txid, timeout=timeout)
     txinfo = web3.eth.getTransaction(txid)
 
-    # EVM has only one error mode and it's consume all gas
+    # Check if tx succeeded (real chain only)
+    if 'status' in receipt:
+        assert receipt['status'] == 1
+
+    # Make sure Out-Of-Gas exception didn't happen
     assert txinfo["gas"] != receipt["gasUsed"]
     return receipt
 
