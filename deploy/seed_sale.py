@@ -1,61 +1,98 @@
-import sys
-
+import click
 from populus import Project
 from utils import (
-    deploy_contract,
-    dump_abi,
-    authority_permit_any,
+    write_json,
     check_succesful_tx,
     ensure_working_dir,
-    unlock_wallet,
+    confirm_deployment,
 )
+from base_deployer import BaseDeployer
 
 working_dir = ensure_working_dir()
 
-def main():
-    # Chain must be preconfigured in populus.json
-    try:
-        _, chain_name, beneficiary = sys.argv
-    except ValueError:
-        print("Usage:\n python seed_sale.py chain_name beneficiary_address")
-        return
 
+class SeedSale(BaseDeployer):
+    __target__ = 'ViewlySeedSale'
+
+    def __init__(self, chain_name, chain, owner=None, **kwargs):
+        """ Initialize the contract.
+
+        Args:
+            chain_name: Name of ETH chain (ie. mainnet, ropsten...)
+            chain: Populus Project chain instance.
+            owner: `from` address to transact with (`msg.sender` in contracts)
+
+        """
+        super().__init__(chain_name, chain, owner)
+
+        # multi-contract instances
+        self.instances = {
+            'DSGuard': kwargs.get('DSGuard'),
+            'DSToken': kwargs.get('DSToken'),
+            'ViewlySeedSale': kwargs.get('ViewlySeedSale'),
+        }
+
+
+    def deploy(self, beneficiary: str):
+        # ViewAuthority
+        if not self.instances['DSGuard']:
+            self.instances['DSGuard'] = \
+                self.deploy_contract('DSGuard', gas=1_340_000)
+            print(f"DSGuard address: {self.instances['DSGuard'].address}")
+
+        # ViewToken
+        if not self.instances['DSToken']:
+            self.instances['DSToken'] = \
+                self.deploy_contract('DSToken', args=['VIEW'], gas=2_000_000)
+
+            tx = self.instances['DSToken'] \
+                .transact({"from": self.owner}) \
+                .setAuthority(self.instances['DSGuard'].address)
+            check_succesful_tx(self.web3, tx)
+            print(f"DSToken address: {self.instances['DSToken'].address}")
+
+        # Seed Sale
+        if not self.instances['ViewlySeedSale']:
+            self.instances['ViewlySeedSale'] = \
+                self.deploy_contract(
+                    'ViewlySeedSale',
+                    args=[self.instances['DSToken'].address, beneficiary])
+
+            self.authority_permit_any(
+                authority = self.instances['DSGuard'],
+                src_address = self.instances['ViewlySeedSale'].address,
+                dst_address = self.instances['DSToken'].address,
+            )
+            print(f"ViewlySeedSale address: {self.instances['ViewlySeedSale'].address}")
+
+    def deprecate(self):
+        pass
+
+    def dump_abis(self):
+        print(f'Writing ABIs to {working_dir / "build"}')
+        for name, instance in self.instances.items():
+            if instance:
+                write_json(instance.abi, f'build/{name}.abi.json')
+
+
+@click.command()
+@click.option('--chain', 'chain_name', default='tester',
+              type=str, help='Name of ETH Chain')
+@click.option('--owner', default=None,
+              type=str, help='Account to deploy from')
+@click.argument('beneficiary', type=str)
+def deploy(chain_name, owner, beneficiary):
+    """ Deploy ViewlySeedSale """
     with Project().get_chain(chain_name) as chain:
-        web3 = chain.web3
-        print("Head block is %d on the %s chain" % (web3.eth.blockNumber, chain_name))
-
-        # The address who will be the owner of the contracts
-        owner = web3.eth.coinbase
-        if chain_name not in ['tester', 'testrpc']:
-            unlock_wallet(chain.web3, owner)
-
-        print('Owner address is', owner)
+        deployer = SeedSale(chain_name, chain, owner=owner)
+        print(f'Head block is {deployer.web3.eth.blockNumber} '
+              f'on the "{chain_name}" chain')
+        print('Owner address is', deployer.owner)
         print('Beneficiary address is', beneficiary)
 
-        print('Deploying ViewAuthority')
-        view_auth = deploy_contract(chain, owner, 'DSGuard')
-        print('ViewAuthority address is', view_auth.address)
-
-        print('Deploying ViewToken')
-        view_token = deploy_contract(chain, owner, 'DSToken', ['VIEW'])
-        print('ViewToken address is', view_token.address)
-        tx = view_token.transact().setAuthority(view_auth.address)
-        check_succesful_tx(web3, tx)
-        print('ViewToken has authorithy set')
-
-        print('Deploying ViewlySeedSale')
-        sale = deploy_contract(chain, owner, 'ViewlySeedSale', [view_token.address, beneficiary])
-        print('ViewlySeedSale address is', sale.address)
-        authority_permit_any(chain, view_auth, sale.address, view_token.address)
-        print('ViewlySeedSale is permitted to use ViewToken')
-
-        print(f'Writing ABIs to {working_dir / "build"}')
-        dump_abi(view_auth, 'build/view_auth_abi.json')
-        dump_abi(view_token, 'build/view_token_abi.json')
-        dump_abi(sale, 'build/viewly_seed_sale_abi.json')
-
-        print('All done!')
-
+        if confirm_deployment(chain_name, deployer.__target__):
+            deployer.deploy(beneficiary)
+            deployer.dump_abis()
 
 if __name__ == '__main__':
-    main()
+    deploy()

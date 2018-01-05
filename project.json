@@ -1,47 +1,8 @@
 {
   "chains": {
     "mainnet": {
-      "chain": {},
-      "contracts": {
-        "backends": {
-          "JSONFile": {
-            "settings": {}
-          },
-          "Memory": {},
-          "ProjectContracts": {},
-          "TestContracts": {}
-        }
-      },
-      "web3": {
-        "provider": {}
-      }
-    },
-    "parity": {
       "chain": {
         "class": "populus.chain.external.ExternalChain"
-      },
-      "contracts": {
-        "backends": {
-          "JSONFile": {
-            "class": "populus.contracts.backends.filesystem.JSONFileBackend",
-            "priority": 10,
-            "settings": {
-              "file_path": "./registrar.json"
-            }
-          },
-          "Memory": {
-            "class": "populus.contracts.backends.memory.MemoryBackend",
-            "priority": 50
-          },
-          "ProjectContracts": {
-            "class": "populus.contracts.backends.project.ProjectContractsBackend",
-            "priority": 20
-          },
-          "TestContracts": {
-            "class": "populus.contracts.backends.testing.TestContractsBackend",
-            "priority": 40
-          }
-        }
       },
       "web3": {
         "provider": {
@@ -52,60 +13,15 @@
         }
       }
     },
-    "rinkeby": {
+    "ropsten": {
       "chain": {
         "class": "populus.chain.external.ExternalChain"
-      },
-      "contracts": {
-        "backends": {
-          "JSONFile": {
-            "class": "populus.contracts.backends.filesystem.JSONFileBackend",
-            "priority": 10,
-            "settings": {
-              "file_path": "./registrar.json"
-            }
-          },
-          "Memory": {
-            "class": "populus.contracts.backends.memory.MemoryBackend",
-            "priority": 50
-          },
-          "ProjectContracts": {
-            "class": "populus.contracts.backends.project.ProjectContractsBackend",
-            "priority": 20
-          },
-          "TestContracts": {
-            "class": "populus.contracts.backends.testing.TestContractsBackend",
-            "priority": 40
-          }
-        }
       },
       "web3": {
         "provider": {
           "class": "web3.providers.ipc.IPCProvider",
           "settings": {
-            "ipc_path": "/Users/user/.rinkeby/geth.ipc"
-          }
-        }
-      }
-    },
-    "ropsten": {
-      "chain": {
-        "class": "populus.chain.external.ExternalChain"
-      },
-      "contracts": {
-        "backends": {
-          "JSONFile": {
-            "settings": {}
-          },
-          "Memory": {},
-          "ProjectContracts": {},
-          "TestContracts": {}
-        }
-      },
-      "web3": {
-        "provider": {
-          "settings": {
-            "ipc_path": "/Users/user/Library/Ethereum/testnet/geth.ipc"
+            "ipc_path": "/Users/user/Library/Ethereum/rinkeby/geth.ipc"
           }
         }
       }

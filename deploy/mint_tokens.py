@@ -1,61 +1,102 @@
-import sys
-
+import click
 from populus import Project
 from utils import (
     load_contract,
-    deploy_contract,
-    dump_abi,
-    authority_permit_any,
+    write_json,
     ensure_working_dir,
-    unlock_wallet,
+    confirm_deployment,
 )
+from base_deployer import BaseDeployer
 
 working_dir = ensure_working_dir()
 
-contract_name = 'MintTokens'
+class MintTokens(BaseDeployer):
+    __target__ = 'MintTokens'
+    __dependencies__ = ['DSGuard', 'DSToken']
 
-def main():
-    try:
-        _, chain_name, view_token_addr, view_auth_addr = sys.argv
-    except ValueError:
-        print("Usage:\n python mint_tokens.py "
-              "chain_name view_token_addr view_auth_addr")
-        return
+    def __init__(self,
+                 chain_name,
+                 chain,
+                 owner=None,
+                 instance=None,
+                 **kwargs):
+        """ Initialize the deployer.
 
-    with Project().get_chain(chain_name) as chain:
-        print(f"Head block is {chain.web3.eth.blockNumber} "
-              f"on the {chain_name} chain")
+        Args:
+            chain_name: Name of ETH chain (ie. mainnet, ropsten...)
+            chain: Populus Project chain instance.
+            owner: `from` address to transact with (`msg.sender` in contracts)
+            instance: A fully loaded instance of this contract.
+        """
+        super().__init__(chain_name, chain, owner)
 
-        owner = chain.web3.eth.coinbase
-        if chain_name not in ['tester', 'testrpc']:
-            unlock_wallet(chain.web3, owner)
+        # contract instances
+        self.instance = instance
 
-        view_token = load_contract(chain, 'DSToken', view_token_addr)
-        view_auth = load_contract(chain, 'DSGuard', view_auth_addr)
-        print('Owner address is', owner)
-        print('ViewToken address is', view_token.address)
-        print('ViewAuthorithy address is', view_auth.address)
+        self.dependencies = {
+            'DSToken': kwargs.get('DSToken'),
+            'DSGuard': kwargs.get('DSGuard'),
+        }
 
-        print(f'Deploying {contract_name}.sol')
-        mint_tokens = deploy_contract(
-            chain=chain,
-            owner=owner,
-            contract_name=contract_name,
-            args=[view_token.address])
-        print(f'{contract_name} address is', mint_tokens.address)
 
-        authority_permit_any(
-            chain=chain,
-            authority=view_auth,
-            src_address=mint_tokens.address,
-            dest_address=view_token.address)
-        print(f'{contract_name} is permitted to use ViewToken')
+    def deploy(self):
+        """ Deploy this contract and perform setup."""
+        if self.instance:
+            raise ValueError(f"Instance already deployed at {self.instance.address}")
 
+        self.instance = self.deploy_contract(
+            contract_name='MintTokens',
+            args=[self.dependencies['DSToken'].address])
+        print(f'{self.__target__} address is', self.instance.address)
+
+        self.authority_permit_any(
+            authority=self.dependencies['DSGuard'],
+            src_address=self.instance.address,
+            dst_address=self.dependencies['DSToken'].address)
+
+    def deprecate(self):
+        """ Destroy this contract, and clean up."""
+        if not self.instance:
+            raise ValueError('Cannot deprecate a non-existing instance')
+
+        # TODO:
+        # - call suicide() on contract
+        # - remove the contract from authority
+
+    def dump_abis(self):
         print(f'Writing ABIs to {working_dir / "build"}')
-        dump_abi(mint_tokens, f'build/{contract_name}.json')
+        write_json(
+            self.instance.abi,
+            f'build/{self.__target__}.abi.json')
 
-        print('All done!')
+
+@click.command()
+@click.option('--chain', 'chain_name', default='tester',
+              type=str, help='Name of ETH Chain')
+@click.option('--owner', default=None,
+              type=str, help='Account to deploy from')
+@click.argument('ds-guard-addr', type=str)
+@click.argument('ds-token-addr', type=str)
+def deploy(chain_name, owner, ds_guard_addr, ds_token_addr):
+    """ Deploy MintTokens """
+    with Project().get_chain(chain_name) as chain:
+        ds_token = load_contract(chain, 'DSToken', ds_token_addr)
+        ds_guard = load_contract(chain, 'DSGuard', ds_guard_addr)
+        deps = {
+            'DSGuard': ds_guard,
+            'DSToken': ds_token,
+        }
+        deployer = MintTokens(chain_name, chain, owner=owner, **deps)
+        print(f'Head block is {deployer.web3.eth.blockNumber} '
+              f'on the "{chain_name}" chain')
+        print('Owner address is', deployer.owner)
+        print('DSGuard address is', ds_guard.address)
+        print('DSToken address is', ds_token.address)
+
+        if confirm_deployment(chain_name, deployer.__target__):
+            deployer.deploy()
+            deployer.dump_abis()
 
 
 if __name__ == '__main__':
-    main()
+    deploy()
