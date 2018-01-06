@@ -4,8 +4,9 @@ import web3
 
 from web3.utils.validation import validate_address
 from toolz import pipe
+from eth_utils import to_wei
 
-from utils import load_json
+from utils import load_json, get_chain
 from db import (
     init_db,
     import_txs,
@@ -45,28 +46,12 @@ def txs_from_json_file(txs_json_path: str) -> dict:
     )
 
 
-def get_chain(chain_name: str, infura_key='') -> web3.Web3:
-    """ A convenient wrapper for most common web3 backend sources."""
-    from web3 import Web3, HTTPProvider, IPCProvider, TestRPCProvider
-    from web3.providers.eth_tester import EthereumTesterProvider
-    from eth_tester import EthereumTester
-    chains = {
-        'tester': EthereumTesterProvider(EthereumTester()),
-        'testrpc': TestRPCProvider(),
-        'testnet': IPCProvider(testnet=True),
-        'mainnet': IPCProvider(),
-        'infura': HTTPProvider(f'https://mainnet.infura.io/{infura_key}')
-    }
-    return Web3(chains[chain_name])
-
-
 def get_mint_tokens_instance(
-    abi_path,
-    contract_address,
-    chain_name='tester', **kwargs) -> web3.eth.Contract:
+    w3: web3.Web3,
+    abi_path: str,
+    contract_address: str) -> web3.eth.Contract:
     """ Reconstruct a contract instance from its address and ABI."""
     abi = load_json(abi_path)
-    w3 = get_chain(chain_name, **kwargs)
     return w3.eth.contract(abi, contract_address)
 
 
@@ -86,7 +71,7 @@ def mint_tokens(
     Returns:
         txid: Transaction ID of the function call
     """
-    assert bucket in buckets, "Invalid bucket id"
+    assert bucket in buckets.values(), "Invalid bucket id"
     assert type(amount) == float, "Invalid amount type"
     validate_address(recipient)
 
@@ -99,11 +84,18 @@ def mint_tokens(
         tx_props['gas'] = kwargs['gas']
 
     # which address we are making a call from
-    if 'owner' in kwargs:
+    if kwargs.get('owner'):
         tx_props['from'] = kwargs['owner']
+    else:
+        # we could fallback to coinbase in future,
+        # however for now its explicit
+        raise ValueError('Missing the address to send transaction from. '
+                         'Try using the --owner flag')
 
     txid = instance.transact(tx_props).mint(
-        recipient, amount, bucket
+        recipient,
+        to_wei(amount, 'ether'),
+        bucket
     )
     return txid
 
@@ -139,25 +131,26 @@ def cli_import_txs(json_file, db_file):
     print(f'Imported {len(txs)} transactions into {db_file}')
 
 @cli.command(name='payout')
+@click.option('--provider', 'chain_provider', default='tester', type=str,
+              help='Chain Provider (parity, geth, tester...)')
+@click.option('--chain', 'chain_name', default='mainnet', type=str,
+              help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
+@click.option('--owner', default=None, type=str,
+              help='Account to call the contract from')
 @click.argument('db-file', type=click.Path(exists=True))
-@click.argument('chain-name', type=str)
 @click.argument('contract-address', type=str)
-@click.argument('contract-abi', type=click.Path(exists=True))
-def cli_payout(db_file, chain_name, contract_address, abi_path):
+@click.argument('abi-path', type=click.Path(exists=True))
+def cli_payout(chain_provider, chain_name, owner, db_file, contract_address, abi_path):
     """Payout pending tx's in the specified database."""
 
     infura_key = ''
-    if chain_name == 'infura':
+    if chain_provider == 'infura':
         infura_key = click.prompt(
             'Please enter your infura key', type=str)
 
-    instance = get_mint_tokens_instance(
-        abi_path,
-        contract_address,
-        chain_name,
-        infura_key=infura_key,
-    )
-    assert instance.address == contract_address
+    w3 = get_chain(chain_provider, chain_name, infura_key=infura_key)
+    instance = get_mint_tokens_instance(w3, abi_path, contract_address)
+    assert instance.address.lower() == contract_address.lower()
 
     q = """
     SELECT id, recipient, amount, bucket
@@ -167,26 +160,38 @@ def cli_payout(db_file, chain_name, contract_address, abi_path):
     for payout in query_all(db_file, q):
         id_, recipient, amount, bucket = payout
         txid = mint_tokens(
-            instance, recipient, amount, bucket,
+            instance, recipient, amount, bucket, owner=owner,
         )
         update_txid(db_file, id_, txid)
+        print(f'Minted {amount} tokens to {recipient}')
 
 
 @cli.command(name='verify')
+@click.option('--provider', 'chain_provider', default='tester', type=str,
+              help='Chain Provider (parity, geth, tester...)')
+@click.option('--chain', 'chain_name', default='mainnet', type=str,
+              help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
 @click.argument('db-file', type=click.Path(exists=True))
-@click.argument('chain-name', type=str)
-def cli_verify(db_file, chain_name):
+def cli_verify(chain_provider, chain_name, db_file):
     """Verify paid tx's in the specified database."""
+    infura_key = ''
+    if chain_provider == 'infura':
+        infura_key = click.prompt(
+            'Please enter your infura key', type=str)
+
+    w3 = get_chain(chain_provider, chain_name, infura_key=infura_key)
+
     q = """
     SELECT id, txid
      FROM txs
      WHERE success = 0 AND txid IS NOT NULL;
     """
     for id_, txid in query_all(db_file, q):
-        if is_tx_successful(txid):
+        if is_tx_successful(w3, txid):
             mark_tx_as_successful(db_file, id_)
+            print(f'{txid} is OK.')
         else:
-            reason = 'Out of Gas' if is_tx_out_of_gas(txid) else 'Fail'
+            reason = 'Out of Gas' if is_tx_out_of_gas(w3, txid) else 'Fail'
             if click.confirm(f'{txid} has failed ({reason}). Retry?'):
                 mark_tx_for_retry(db_file, id_)
 

@@ -30,7 +30,7 @@ def update_txid(db_path, id_, txid):
     """
     with sqlite3.connect(db_path) as conn:
         cur = conn.cursor()
-        cur.execute(q, {'id': id_, txid: txid})
+        cur.execute(q, {'id': id_, 'txid': txid})
         conn.commit()
 
 def mark_tx_as_successful(db_path, id_):

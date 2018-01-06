@@ -4,6 +4,7 @@ from pathlib import Path
 import pathlib
 import json
 import sys
+import web3
 
 def geth_ipc(chain_name: str) -> str:
     """ Get the geth IPC path for any chain.
@@ -31,6 +32,23 @@ def parity_ipc() -> str:
         parity_path  = '.local/share/io.parity.ethereum'
 
     return str(Path.home() / parity_path / 'jsonrpc.ipc')
+
+def get_chain(provider: str, chain_name='mainnet', infura_key='') -> web3.Web3:
+    """ A convenient wrapper for most common web3 backend sources."""
+    from web3 import Web3, HTTPProvider, IPCProvider, TestRPCProvider
+    from web3.providers.eth_tester import EthereumTesterProvider
+    from eth_tester import EthereumTester
+
+    infura_url = f'https://{chain_name}.infura.io/{infura_key}'
+    providers = {
+        'tester': lambda: EthereumTesterProvider(EthereumTester()),
+        'testrpc': lambda: TestRPCProvider(),
+        'http': lambda: HTTPProvider("http://localhost:8545"),
+        'parity': lambda: IPCProvider(parity_ipc()),
+        'geth': lambda: IPCProvider(geth_ipc(chain_name)),
+        'infura': lambda: HTTPProvider(infura_url)
+    }
+    return Web3(providers[provider]())
 
 def script_source_dir() -> pathlib.Path:
     """ Return the absolute path of *this* python file,
