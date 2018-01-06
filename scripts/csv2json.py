@@ -48,8 +48,8 @@ def convert(payout_sheet_csv, address_book_csv):
     distribute.py compliant .json (to stdout).
     """
     data = merge_and_clean(
-        address_book = csv_to_dict("example_data/address-book.csv"),
-        payout_sheet = csv_to_dict("example_data/payout-sheet.csv"),
+        address_book = csv_to_dict(address_book_csv),
+        payout_sheet = csv_to_dict(payout_sheet_csv),
     )
     click.echo(pretty_json(data))
 
