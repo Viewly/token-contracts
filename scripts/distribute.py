@@ -6,7 +6,12 @@ from web3.utils.validation import validate_address
 from toolz import pipe
 from eth_utils import to_wei
 
-from utils import load_json, get_chain
+from utils import (
+    load_json,
+    get_chain,
+    default_wallet_account,
+    unlock_wallet,
+)
 from db import (
     init_db,
     import_txs,
@@ -57,6 +62,7 @@ def get_mint_tokens_instance(
 
 def mint_tokens(
     instance: web3.eth.Contract,
+    owner: str,
     recipient: str,
     amount: float,
     bucket: int, **kwargs) -> str:
@@ -64,6 +70,7 @@ def mint_tokens(
 
     Args:
         instance: A MintTokens live contract instance (fully initialized).
+        owner: An authorized Ethereum account to call the minting contract from.
         recipient: Address of VIEW Token Recipient.
         amount: Amount of VIEW Tokens to mint.
         bucket: A bucket number of the funding source (Founders, Supporters...)
@@ -77,20 +84,12 @@ def mint_tokens(
 
     tx_props = {
         'value': 0,
+        'from': owner,
     }
     # if gas limit is not provided,
     # w3.eth.estimateGas() is usded
     if 'gas' in kwargs:
         tx_props['gas'] = kwargs['gas']
-
-    # which address we are making a call from
-    if kwargs.get('owner'):
-        tx_props['from'] = kwargs['owner']
-    else:
-        # we could fallback to coinbase in future,
-        # however for now its explicit
-        raise ValueError('Missing the address to send transaction from. '
-                         'Try using the --owner flag')
 
     txid = instance.transact(tx_props).mint(
         recipient,
@@ -137,18 +136,27 @@ def cli_import_txs(json_file, db_file):
               help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
 @click.option('--owner', default=None, type=str,
               help='Account to call the contract from')
-@click.argument('db-file', type=click.Path(exists=True))
-@click.argument('contract-address', type=str)
-@click.argument('abi-path', type=click.Path(exists=True))
-def cli_payout(chain_provider, chain_name, owner, db_file, contract_address, abi_path):
+@click.option('--db-file', default='payouts.db', type=click.Path(exists=True),
+              help='SQLite Database file path')
+@click.option('--contract-address', prompt=True, type=str,
+              help='Address of the token minting contract')
+@click.option('--abi-path', prompt=True, type=click.Path(exists=True),
+              help='ABI of the token minting contract')
+def cli_payout(
+    chain_provider,
+    chain_name,
+    owner,
+    db_file,
+    contract_address,
+    abi_path):
     """Payout pending tx's in the specified database."""
 
-    infura_key = ''
-    if chain_provider == 'infura':
-        infura_key = click.prompt(
-            'Please enter your infura key', type=str)
+    w3 = get_chain(chain_provider, chain_name)
+    if not owner:
+        owner = default_wallet_account(w3)
+    if chain_name not in ['tester', 'testrpc']:
+        unlock_wallet(w3, owner)
 
-    w3 = get_chain(chain_provider, chain_name, infura_key=infura_key)
     instance = get_mint_tokens_instance(w3, abi_path, contract_address)
     assert instance.address.lower() == contract_address.lower()
 
@@ -160,7 +168,7 @@ def cli_payout(chain_provider, chain_name, owner, db_file, contract_address, abi
     for payout in query_all(db_file, q):
         id_, recipient, amount, bucket = payout
         txid = mint_tokens(
-            instance, recipient, amount, bucket, owner=owner,
+            instance, owner, recipient, amount, bucket,
         )
         update_txid(db_file, id_, txid)
         print(f'Minted {amount} tokens to {recipient}')
@@ -171,15 +179,11 @@ def cli_payout(chain_provider, chain_name, owner, db_file, contract_address, abi
               help='Chain Provider (parity, geth, tester...)')
 @click.option('--chain', 'chain_name', default='mainnet', type=str,
               help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
-@click.argument('db-file', type=click.Path(exists=True))
+@click.option('--db-file', default='payouts.db', type=click.Path(exists=True),
+              help='SQLite Database file path')
 def cli_verify(chain_provider, chain_name, db_file):
     """Verify paid tx's in the specified database."""
-    infura_key = ''
-    if chain_provider == 'infura':
-        infura_key = click.prompt(
-            'Please enter your infura key', type=str)
-
-    w3 = get_chain(chain_provider, chain_name, infura_key=infura_key)
+    w3 = get_chain(chain_provider, chain_name)
 
     q = """
     SELECT id, txid
