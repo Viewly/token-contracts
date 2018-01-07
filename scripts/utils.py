@@ -61,5 +61,25 @@ def load_json(filename):
     with open(filename, 'r') as f:
         return json.loads(f.read())
 
-if __name__  == '__main__':
-    print(script_source_dir())
+# --------------------------------------
+# Duplicate methods from deploy/utils.py
+# --------------------------------------
+def unlock_wallet(web3, address):
+    from getpass import getpass
+    unlocked = False
+    while not unlocked:
+        pw = getpass(f'Password to unlock {address}: ')
+        if not pw:
+            break
+        unlocked = web3.personal.unlockAccount(address, pw)
+
+def default_wallet_account(web3):
+    """
+    Returns the coinbase account or the first
+    account provided by the wallet.
+    """
+    if int(web3.eth.coinbase, 16):
+        return web3.eth.coinbase
+
+    return web3.eth.accounts[0]
+
