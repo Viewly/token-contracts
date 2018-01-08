@@ -11,8 +11,8 @@ def init_db(db_path):
 def import_txs(db_path, txs: dict):
     """ Import pending transactions into their own SQLite database."""
     q = """
-    INSERT INTO txs (recipient, amount, bucket)
-    VALUES (:recipient, :amount, :bucket)
+    INSERT INTO txs (name, recipient, amount, bucket)
+    VALUES (:name, :recipient, :amount, :bucket)
     """
     with sqlite3.connect(db_path) as conn:
         cur = conn.cursor()

@@ -1,8 +1,10 @@
 from inspect import getsourcefile
 from os.path import abspath
 from pathlib import Path
+from typing import List
 import pathlib
 import json
+import csv
 import sys
 import web3
 
@@ -60,6 +62,15 @@ def script_source_dir() -> pathlib.Path:
 def load_json(filename):
     with open(filename, 'r') as f:
         return json.loads(f.read())
+
+def load_csv_to_dict(csv_file: str) -> List[dict]:
+    """
+    Convert a multi-column .csv file into
+    a list of dictionaries.
+    """
+    with open(csv_file, 'rt') as f:
+        reader = csv.DictReader(f)
+        return [dict(x) for x in reader]
 
 # --------------------------------------
 # Duplicate methods from deploy/utils.py

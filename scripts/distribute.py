@@ -3,7 +3,7 @@ import os
 import web3
 
 from web3.utils.validation import validate_address
-from toolz import pipe
+from toolz import pipe, keymap
 from eth_utils import to_wei
 
 from utils import (
@@ -11,6 +11,7 @@ from utils import (
     get_chain,
     default_wallet_account,
     unlock_wallet,
+    load_csv_to_dict,
 )
 from db import (
     init_db,
@@ -24,7 +25,20 @@ from db import (
 roles = 'Founders Supporters Creators Bounties'.split(' ')
 buckets = dict(zip(roles, range(len(roles))))
 
-def validated_payouts(payouts_in: dict) -> dict:
+def rename_field(field_name):
+    # these are the standard fields
+    if field_name.lower() in ['name', 'amount', 'recipient', 'bucket']:
+        return field_name.lower()
+
+    # these are here for compatibility with Speadsheet headers
+    rename = {
+        'Tokens': 'amount',
+        'Address': 'recipient',
+        'Bucket': 'bucket',
+    }
+    return rename.get(field_name, '')
+
+def validated_payouts(payouts_in):
     """
     This method validates json transactions.
     It ensures `recipient` addresses are valid ETH addresses,
@@ -33,7 +47,7 @@ def validated_payouts(payouts_in: dict) -> dict:
     # swap bucket name with matching ID
     payouts = [
         {**x, 'bucket': buckets[x['bucket'].lower().title()]}
-        for x in payouts_in
+        for x in (keymap(rename_field, y) for y in payouts_in)
     ]
 
     # validate addresses
@@ -42,14 +56,24 @@ def validated_payouts(payouts_in: dict) -> dict:
     return payouts
 
 
+def txs_from_file(filename: str) -> dict:
+    """
+    Load a payout sheet that adheres to Google Sheet
+    csv or the standardized json input.
+    """
+    extension = filename.split('.')[-1]
+    if extension == 'json':
+        loader_fn = load_json
+    elif extension == 'csv':
+        loader_fn = load_csv_to_dict
+    else:
+        raise ValueError(f'Unsupported file type "{extension}"')
 
-def txs_from_json_file(txs_json_path: str) -> dict:
     return pipe(
-        txs_json_path,
-        load_json,
+        filename,
+        loader_fn,
         validated_payouts,
     )
-
 
 def get_mint_tokens_instance(
     w3: web3.Web3,
@@ -109,6 +133,7 @@ def is_tx_out_of_gas(w3: web3.Web3, txid: str) -> bool:
     receipt = w3.eth.getTransactionReceipt(txid)
     return receipt['status'] == 0 and tx['gas'] == receipt['gasUsed']
 
+
 # CLI
 # ---
 context_settings = dict(help_option_names=['-h', '--help'])
@@ -117,15 +142,16 @@ def cli():
     pass
 
 @cli.command(name='import-txs')
-@click.argument('json-file', type=click.Path(exists=True))
+@click.argument('payout-sheet-file', type=click.Path(exists=True))
 @click.argument('db-file', type=click.Path(exists=False))
-def cli_import_txs(json_file, db_file):
+def cli_import_txs(payout_sheet_file, db_file):
     """Import transactions from json file to a new database for processing."""
+    txs = txs_from_file(payout_sheet_file)
+
     if os.path.exists(db_file):
         click.confirm(f'Database {db_file} already exists. Overwrite?', abort=True)
 
     init_db(db_file)
-    txs = txs_from_json_file(json_file)
     import_txs(db_file, txs)
     print(f'Imported {len(txs)} transactions into {db_file}')
 
