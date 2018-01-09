@@ -1,47 +1,37 @@
-## csv2json.py
-This script will convert .csv files from Google Sheet
-to `distribute.py` compliant json.
-
-Example usage:
-```
-python csv2json.py \
-    example_data/payout-sheet.csv \
-    example_data/address-book.csv \
-        > payouts.json
-```
-
-*The .csv files can be found
-[here](https://docs.google.com/spreadsheets/d/1cBV168xNWoQbcqnIjiRi3vN0Lf6d1-i9GDIQ-1HrkoA/edit?pli=1#gid=1500784426),
-by exporting tabs "Payout Sheet" and "Address Book"*
-
 ## distribute.py
+distribute.py is a tool for Minting Tokens.
 
-Import a payouts.json file into its own database:
+First, we create a database from .json or .csv payout sheet.
+Once the database is created, the script can:
+ - payout (mint tokens)
+ - verify transactions on the blockchain
+ - export the results to .csv
+
+Import a `payouts.json` file into its own database:
 ```
-python distribute.py import-txs payouts.json december.db
+python distribute.py import-txs payouts.json payouts.db
 ```
 
-Issue Payouts:
+Alternatively, this script also supports Google Payouts Sheet exported as .csv
 ```
-python distribute.py payout december.db
+python distribute.py import-txs payout-sheet.csv payouts.db
 ```
 
-Verify Payouts:
+Make the payouts (from the database):
 ```
-python distribute.py verify december.db
+python scripts/distribute.py payout \
+    --contract-address 0x7cedd8ae603c3513fe7e86be4adb0314b0e8ec50 \
+    payouts.db
+```
+
+Verify Payouts on the blockchain:
+```
+python scripts/distribute.py verify payouts.db
 ```
 
 ---
 
-### Sqlite
-Check the transactions in sqlite:
+### Export the database as .csv
 ```
-~/scripts % sqlite3 december.db "select * from txs;"
-1|0x9cd47749bcd550ce4d2590a82fad16eec9d007b7|1000.0|0||0
-2|0x9cd47749bcd550ce4d2590a82fad16eec9d007b7|100.0|1||0
-```
-
-### Exporting the table as .csv
-```
-sqlite3 -header -csv december.db "select * from txs;" > out.csv
+sqlite3 -header -csv payouts.db "select * from txs;" > out.csv
 ```

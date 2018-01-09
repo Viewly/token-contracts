@@ -3,9 +3,16 @@ import os
 import web3
 
 from web3.utils.validation import validate_address
-from toolz import pipe
+from toolz import pipe, keymap
+from eth_utils import to_wei
 
-from utils import load_json
+from utils import (
+    load_json,
+    get_chain,
+    default_wallet_account,
+    unlock_wallet,
+    load_csv_to_dict,
+)
 from db import (
     init_db,
     import_txs,
@@ -18,7 +25,20 @@ from db import (
 roles = 'Founders Supporters Creators Bounties'.split(' ')
 buckets = dict(zip(roles, range(len(roles))))
 
-def validated_payouts(payouts_in: dict) -> dict:
+def rename_field(field_name):
+    # these are the standard fields
+    if field_name.lower() in ['name', 'amount', 'recipient', 'bucket']:
+        return field_name.lower()
+
+    # these are here for compatibility with Speadsheet headers
+    rename = {
+        'Tokens': 'amount',
+        'Address': 'recipient',
+        'Bucket': 'bucket',
+    }
+    return rename.get(field_name, '')
+
+def validated_payouts(payouts_in):
     """
     This method validates json transactions.
     It ensures `recipient` addresses are valid ETH addresses,
@@ -27,7 +47,7 @@ def validated_payouts(payouts_in: dict) -> dict:
     # swap bucket name with matching ID
     payouts = [
         {**x, 'bucket': buckets[x['bucket'].lower().title()]}
-        for x in payouts_in
+        for x in (keymap(rename_field, y) for y in payouts_in)
     ]
 
     # validate addresses
@@ -36,42 +56,37 @@ def validated_payouts(payouts_in: dict) -> dict:
     return payouts
 
 
+def txs_from_file(filename: str) -> dict:
+    """
+    Load a payout sheet that adheres to Google Sheet
+    csv or the standardized json input.
+    """
+    extension = filename.split('.')[-1]
+    if extension == 'json':
+        loader_fn = load_json
+    elif extension == 'csv':
+        loader_fn = load_csv_to_dict
+    else:
+        raise ValueError(f'Unsupported file type "{extension}"')
 
-def txs_from_json_file(txs_json_path: str) -> dict:
     return pipe(
-        txs_json_path,
-        load_json,
+        filename,
+        loader_fn,
         validated_payouts,
     )
 
-
-def get_chain(chain_name: str, infura_key='') -> web3.Web3:
-    """ A convenient wrapper for most common web3 backend sources."""
-    from web3 import Web3, HTTPProvider, IPCProvider, TestRPCProvider
-    from web3.providers.eth_tester import EthereumTesterProvider
-    from eth_tester import EthereumTester
-    chains = {
-        'tester': EthereumTesterProvider(EthereumTester()),
-        'testrpc': TestRPCProvider(),
-        'testnet': IPCProvider(testnet=True),
-        'mainnet': IPCProvider(),
-        'infura': HTTPProvider(f'https://mainnet.infura.io/{infura_key}')
-    }
-    return Web3(chains[chain_name])
-
-
 def get_mint_tokens_instance(
-    abi_path,
-    contract_address,
-    chain_name='tester', **kwargs) -> web3.eth.Contract:
+    w3: web3.Web3,
+    abi_path: str,
+    contract_address: str) -> web3.eth.Contract:
     """ Reconstruct a contract instance from its address and ABI."""
     abi = load_json(abi_path)
-    w3 = get_chain(chain_name, **kwargs)
     return w3.eth.contract(abi, contract_address)
 
 
 def mint_tokens(
     instance: web3.eth.Contract,
+    owner: str,
     recipient: str,
     amount: float,
     bucket: int, **kwargs) -> str:
@@ -79,6 +94,7 @@ def mint_tokens(
 
     Args:
         instance: A MintTokens live contract instance (fully initialized).
+        owner: An authorized Ethereum account to call the minting contract from.
         recipient: Address of VIEW Token Recipient.
         amount: Amount of VIEW Tokens to mint.
         bucket: A bucket number of the funding source (Founders, Supporters...)
@@ -86,24 +102,23 @@ def mint_tokens(
     Returns:
         txid: Transaction ID of the function call
     """
-    assert bucket in buckets, "Invalid bucket id"
+    assert bucket in buckets.values(), "Invalid bucket id"
     assert type(amount) == float, "Invalid amount type"
     validate_address(recipient)
 
     tx_props = {
         'value': 0,
+        'from': owner,
     }
     # if gas limit is not provided,
     # w3.eth.estimateGas() is usded
     if 'gas' in kwargs:
         tx_props['gas'] = kwargs['gas']
 
-    # which address we are making a call from
-    if 'owner' in kwargs:
-        tx_props['from'] = kwargs['owner']
-
     txid = instance.transact(tx_props).mint(
-        recipient, amount, bucket
+        recipient,
+        to_wei(amount, 'ether'),
+        bucket
     )
     return txid
 
@@ -118,6 +133,7 @@ def is_tx_out_of_gas(w3: web3.Web3, txid: str) -> bool:
     receipt = w3.eth.getTransactionReceipt(txid)
     return receipt['status'] == 0 and tx['gas'] == receipt['gasUsed']
 
+
 # CLI
 # ---
 context_settings = dict(help_option_names=['-h', '--help'])
@@ -126,38 +142,50 @@ def cli():
     pass
 
 @cli.command(name='import-txs')
-@click.argument('json-file', type=click.Path(exists=True))
+@click.argument('payout-sheet-file', type=click.Path(exists=True))
 @click.argument('db-file', type=click.Path(exists=False))
-def cli_import_txs(json_file, db_file):
+def cli_import_txs(payout_sheet_file, db_file):
     """Import transactions from json file to a new database for processing."""
+    txs = txs_from_file(payout_sheet_file)
+
     if os.path.exists(db_file):
-        click.confirm(f'Database {db_file} already exists. Overwrite?', abort=True)
+        click.confirm(f'Database {db_file} already exists. Overwrite?',
+                      abort=True)
 
     init_db(db_file)
-    txs = txs_from_json_file(json_file)
     import_txs(db_file, txs)
     print(f'Imported {len(txs)} transactions into {db_file}')
 
 @cli.command(name='payout')
-@click.argument('db-file', type=click.Path(exists=True))
-@click.argument('chain-name', type=str)
-@click.argument('contract-address', type=str)
-@click.argument('contract-abi', type=click.Path(exists=True))
-def cli_payout(db_file, chain_name, contract_address, abi_path):
+@click.option('--provider', 'chain_provider', default='parity', type=str,
+              help='Chain Provider (parity, geth, tester...)')
+@click.option('--chain', 'chain_name', default='mainnet', type=str,
+              help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
+@click.option('--owner', default=None, type=str,
+              help='Account to call the contract from')
+@click.option('--contract-address', prompt=True, type=str,
+              help='Address of the token minting contract')
+@click.option('--abi-path', default='build/MintTokens.abi.json',
+              type=click.Path(exists=True),
+              help='ABI of the token minting contract')
+@click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
+def cli_payout(
+    chain_provider,
+    chain_name,
+    owner,
+    contract_address,
+    abi_path,
+    db_file):
     """Payout pending tx's in the specified database."""
 
-    infura_key = ''
-    if chain_name == 'infura':
-        infura_key = click.prompt(
-            'Please enter your infura key', type=str)
+    w3 = get_chain(chain_provider, chain_name)
+    if not owner:
+        owner = default_wallet_account(w3)
+    if chain_name not in ['tester', 'testrpc']:
+        unlock_wallet(w3, owner)
 
-    instance = get_mint_tokens_instance(
-        abi_path,
-        contract_address,
-        chain_name,
-        infura_key=infura_key,
-    )
-    assert instance.address == contract_address
+    instance = get_mint_tokens_instance(w3, abi_path, contract_address)
+    assert instance.address.lower() == contract_address.lower()
 
     q = """
     SELECT id, recipient, amount, bucket
@@ -167,26 +195,33 @@ def cli_payout(db_file, chain_name, contract_address, abi_path):
     for payout in query_all(db_file, q):
         id_, recipient, amount, bucket = payout
         txid = mint_tokens(
-            instance, recipient, amount, bucket,
+            instance, owner, recipient, amount, bucket,
         )
         update_txid(db_file, id_, txid)
+        print(f'Minted {amount} tokens to {recipient}')
 
 
 @cli.command(name='verify')
-@click.argument('db-file', type=click.Path(exists=True))
-@click.argument('chain-name', type=str)
-def cli_verify(db_file, chain_name):
+@click.option('--provider', 'chain_provider', default='parity', type=str,
+              help='Chain Provider (parity, geth, tester...)')
+@click.option('--chain', 'chain_name', default='mainnet', type=str,
+              help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
+@click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
+def cli_verify(chain_provider, chain_name, db_file):
     """Verify paid tx's in the specified database."""
+    w3 = get_chain(chain_provider, chain_name)
+
     q = """
     SELECT id, txid
      FROM txs
      WHERE success = 0 AND txid IS NOT NULL;
     """
     for id_, txid in query_all(db_file, q):
-        if is_tx_successful(txid):
+        if is_tx_successful(w3, txid):
             mark_tx_as_successful(db_file, id_)
+            print(f'{txid} is OK.')
         else:
-            reason = 'Out of Gas' if is_tx_out_of_gas(txid) else 'Fail'
+            reason = 'Out of Gas' if is_tx_out_of_gas(w3, txid) else 'Fail'
             if click.confirm(f'{txid} has failed ({reason}). Retry?'):
                 mark_tx_for_retry(db_file, id_)
 

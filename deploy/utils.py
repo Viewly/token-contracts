@@ -51,6 +51,16 @@ def unlock_wallet(web3, address):
             break
         unlocked = web3.personal.unlockAccount(address, pw)
 
+def default_wallet_account(web3):
+    """
+    Returns the coinbase account or the first
+    account provided by the wallet.
+    """
+    if int(web3.eth.coinbase, 16):
+        return web3.eth.coinbase
+
+    return web3.eth.accounts[0]
+
 def confirm_deployment(chain_name, deploy_target):
     return chain_name != 'mainnet' \
            or click.confirm(f'Deploy {deploy_target}?')

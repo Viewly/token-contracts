@@ -1,6 +1,7 @@
 from utils import (
     unlock_wallet,
     check_succesful_tx,
+    default_wallet_account,
 )
 
 class BaseDeployer:
@@ -19,13 +20,7 @@ class BaseDeployer:
 
         self.chain = chain
         self.web3 = self.chain.web3
-
-        if owner:
-            self.owner = owner
-        elif int(self.web3.eth.coinbase, 16):
-            self.owner = self.web3.eth.coinbase
-        else:
-            self.owner = self.web3.eth.accounts[0]
+        self.owner = owner or default_wallet_account(self.web3)
 
         if self.chain_name not in ['tester', 'testrpc']:
             unlock_wallet(self.web3, self.owner)
