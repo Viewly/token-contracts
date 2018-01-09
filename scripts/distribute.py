@@ -149,32 +149,33 @@ def cli_import_txs(payout_sheet_file, db_file):
     txs = txs_from_file(payout_sheet_file)
 
     if os.path.exists(db_file):
-        click.confirm(f'Database {db_file} already exists. Overwrite?', abort=True)
+        click.confirm(f'Database {db_file} already exists. Overwrite?',
+                      abort=True)
 
     init_db(db_file)
     import_txs(db_file, txs)
     print(f'Imported {len(txs)} transactions into {db_file}')
 
 @cli.command(name='payout')
-@click.option('--provider', 'chain_provider', default='tester', type=str,
+@click.option('--provider', 'chain_provider', default='parity', type=str,
               help='Chain Provider (parity, geth, tester...)')
 @click.option('--chain', 'chain_name', default='mainnet', type=str,
               help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
 @click.option('--owner', default=None, type=str,
               help='Account to call the contract from')
-@click.option('--db-file', default='payouts.db', type=click.Path(exists=True),
-              help='SQLite Database file path')
 @click.option('--contract-address', prompt=True, type=str,
               help='Address of the token minting contract')
-@click.option('--abi-path', prompt=True, type=click.Path(exists=True),
+@click.option('--abi-path', default='build/MintTokens.abi.json',
+              type=click.Path(exists=True),
               help='ABI of the token minting contract')
+@click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
 def cli_payout(
     chain_provider,
     chain_name,
     owner,
-    db_file,
     contract_address,
-    abi_path):
+    abi_path,
+    db_file):
     """Payout pending tx's in the specified database."""
 
     w3 = get_chain(chain_provider, chain_name)
@@ -201,12 +202,11 @@ def cli_payout(
 
 
 @cli.command(name='verify')
-@click.option('--provider', 'chain_provider', default='tester', type=str,
+@click.option('--provider', 'chain_provider', default='parity', type=str,
               help='Chain Provider (parity, geth, tester...)')
 @click.option('--chain', 'chain_name', default='mainnet', type=str,
               help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
-@click.option('--db-file', default='payouts.db', type=click.Path(exists=True),
-              help='SQLite Database file path')
+@click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
 def cli_verify(chain_provider, chain_name, db_file):
     """Verify paid tx's in the specified database."""
     w3 = get_chain(chain_provider, chain_name)
