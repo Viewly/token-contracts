@@ -11,7 +11,7 @@ from base_deployer import BaseDeployer
 working_dir = ensure_working_dir()
 
 class MintTokens(BaseDeployer):
-    __target__ = 'MintTokens'
+    __target__ = 'ViewlyTokensMintage'
     __dependencies__ = ['DSGuard', 'DSToken']
 
     def __init__(self,
@@ -45,7 +45,7 @@ class MintTokens(BaseDeployer):
             raise ValueError(f"Instance already deployed at {self.instance.address}")
 
         self.instance = self.deploy_contract(
-            contract_name='MintTokens',
+            contract_name='ViewlyTokensMintage',
             args=[self.dependencies['DSToken'].address])
         print(f'{self.__target__} address is', self.instance.address)
 
