@@ -76,7 +76,7 @@ class SeedSale(BaseDeployer):
 
 
 @click.command()
-@click.option('--chain', 'chain_name', default='tester',
+@click.option('--populus-chain', 'chain_name', default='tester',
               type=str, help='Name of ETH Chain')
 @click.option('--owner', default=None,
               type=str, help='Account to deploy from')
