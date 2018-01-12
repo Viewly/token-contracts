@@ -4,7 +4,8 @@
 content creators.*  
 Learn more at https://view.ly
 
-# Instructions
+[![CircleCI](https://circleci.com/gh/Viewly/token-contracts.svg?style=svg&circle-token=1e0971075338fce5801b9f32a1e709c2692e49e0)](https://circleci.com/gh/Viewly/token-contracts)
+# Viewly Token Contracts
 
 ## Dependencies
 Viewly smart contracts are leveraging the [Dappsys](https://dappsys.readthedocs.io/en/latest/) framework, because Dappsys provides clean and well written implementations of things like safe math, ERC-20 token and multisig.
