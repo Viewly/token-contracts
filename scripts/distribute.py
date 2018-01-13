@@ -35,6 +35,7 @@ def rename_field(field_name):
         'Tokens': 'amount',
         'Address': 'recipient',
         'Bucket': 'bucket',
+        'Category': 'bucket',
     }
     return rename.get(field_name, '')
 
@@ -51,7 +52,8 @@ def validated_payouts(payouts_in):
     ]
 
     # validate addresses
-    _ = [validate_address(x['recipient']) for x in payouts]
+    for payout in payouts:
+        validate_address(payout['recipient'])
 
     return payouts
 
@@ -225,6 +227,22 @@ def cli_verify(chain_provider, chain_name, db_file):
             if click.confirm(f'{txid} has failed ({reason}). Retry?'):
                 mark_tx_for_retry(db_file, id_)
 
+@cli.command(name='export-txs')
+@click.option('--chain', 'chain_name', default='mainnet', type=str,
+              help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
+@click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
+def cli_export_txs(chain_name, db_file):
+    """Export the database into a Google Sheet friendly csv."""
+    q = """
+    SELECT name, recipient, amount, bucket, txid, success FROM txs;
+    """
+    click.echo('Name,Address,Amount,Category,Tx,Success')
+    for name, recipient, amount, bucket, txid, success in query_all(db_file, q):
+        subdomain = '' if chain_name == 'mainnet' else f'{chain_name}.'
+        buckets_reverse = {v:k for k, v in buckets.items()}
+        click.echo(
+            f'{name},{recipient},{amount},{buckets_reverse[bucket]},'
+            f'https://{subdomain}etherscan.io/tx/{txid},{success}')
 
 if __name__ == '__main__':
     cli()

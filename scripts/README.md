@@ -31,7 +31,7 @@ python scripts/distribute.py verify payouts.db
 
 ---
 
-### Export the database as .csv
+### Export the database as a Google Sheets friendly csv
 ```
-sqlite3 -header -csv payouts.db "select * from txs;" > out.csv
+python scripts/distribute.py export-txs payouts.db
 ```
