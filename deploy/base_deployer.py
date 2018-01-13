@@ -38,15 +38,13 @@ class BaseDeployer:
         return contract
 
     def authority_permit_any(self, authority, src_address, dst_address):
-        """  Grant *all* priviliges to a specific address or contract via DSGuard proxy.
-
-        Note:
-            DSGuard (authority) is authorized to perform actions on the View Token.
+        """  Grant *all* priviliges to a specific address or contract via
+        authority proxy.
 
         Args:
-            authority: Address of our DSGuard Proxy.
-            src_address:  Contract or address being granted priviliges.
-            dest_address: Contract where src_address will get priviliges on.
+            authority: Address of our authority contract.
+            src_address:  Contract being granted priviliges.
+            dest_address: Contract for which priviliges will be granted.
         """
         tx_props = {'from': self.owner}
         tx = authority.transact(tx_props).permit(
