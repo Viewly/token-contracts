@@ -6,7 +6,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: furion/solc:latest
+      - image: viewly/docker-images:python-solc
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
