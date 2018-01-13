@@ -11,6 +11,7 @@ populus = "==2.2.0"
 pytest = "*"
 toolz = "*"
 click = "*"
+stringcase = "*"
 
 
 [dev-packages]

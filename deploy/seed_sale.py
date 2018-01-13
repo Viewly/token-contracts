@@ -1,4 +1,5 @@
 import click
+import stringcase
 from populus import Project
 from utils import (
     write_json,
@@ -72,7 +73,8 @@ class SeedSale(BaseDeployer):
         print(f'Writing ABIs to {working_dir / "build"}')
         for name, instance in self.instances.items():
             if instance:
-                write_json(instance.abi, f'build/{name}.abi.json')
+                abi_file = f'{stringcase.snakecase(name)}.abi.json'
+                write_json(instance.abi, f'build/{abi_file}')
 
 
 @click.command()

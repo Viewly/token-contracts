@@ -1,4 +1,5 @@
 import click
+import stringcase
 from populus import Project
 from utils import (
     load_contract,
@@ -67,7 +68,7 @@ class TokenMintage(BaseDeployer):
         print(f'Writing ABIs to {working_dir / "build"}')
         write_json(
             self.instance.abi,
-            f'build/{self.__target__}.abi.json')
+            f'build/{stringcase.snakecase(self.__target__)}.abi.json')
 
 
 @click.command()
