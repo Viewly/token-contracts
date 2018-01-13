@@ -18,7 +18,9 @@ contract ViewlyTokenMintage is DSAuth, DSMath {
         Founders,
         Supporters,
         Creators,
-        Bounties
+        Bounties,
+        SeedSale,
+        MainSale
     }
 
     struct Category {
@@ -27,7 +29,7 @@ contract ViewlyTokenMintage is DSAuth, DSMath {
     }
 
     DSToken public viewToken;
-    Category[4] public categories;
+    Category[6] public categories;
 
     event TokensMinted(
         address recipient,
@@ -43,6 +45,8 @@ contract ViewlyTokenMintage is DSAuth, DSMath {
         categories[uint8(CategoryId.Supporters)] = Category(9 * MILLION, 0 ether);
         categories[uint8(CategoryId.Creators)]   = Category(20 * MILLION, 0 ether);
         categories[uint8(CategoryId.Bounties)]   = Category(3 * MILLION, 0 ether);
+        categories[uint8(CategoryId.SeedSale)]   = Category(10 * MILLION, 10 * MILLION);
+        categories[uint8(CategoryId.MainSale)]   = Category(40 * MILLION, 0 ether);
     }
 
     function mint(address recipient, uint tokens, CategoryId categoryId) auth {

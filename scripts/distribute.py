@@ -22,7 +22,7 @@ from db import (
     mark_tx_for_retry,
 )
 
-roles = 'Founders Supporters Creators Bounties'.split(' ')
+roles = 'Founders Supporters Creators Bounties SeedSale MainSale'.split(' ')
 buckets = dict(zip(roles, range(len(roles))))
 
 def rename_field(field_name):

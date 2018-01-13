@@ -14,6 +14,8 @@ class CategoryId:
     Supporters = 1
     Creators   = 2
     Bounties   = 3
+    SeedSale   = 4
+    MainSale   = 5
 
 def assert_last_tokens_minted(contract: Contract, recipient, tokens):
     event = contract.pastEvents('TokensMinted').get()[-1]['args']
@@ -55,6 +57,9 @@ def test_init(chain, instance, token):
     assert category(CategoryId.Supporters)[0] == to_wei(9 * million, 'ether')
     assert category(CategoryId.Creators)[0] == to_wei(20 * million, 'ether')
     assert category(CategoryId.Bounties)[0] == to_wei(3 * million, 'ether')
+    assert category(CategoryId.SeedSale)[0] == to_wei(10 * million, 'ether')
+    assert category(CategoryId.SeedSale)[1] == to_wei(10 * million, 'ether')
+    assert category(CategoryId.MainSale)[0] == to_wei(40 * million, 'ether')
 
 def test_mint(chain, instance, token, recipient, recipient2):
     category = lambda category: instance.call().categories(category)
@@ -88,7 +93,7 @@ def test_mint_fails_after_cap_reached(chain, instance, token, recipient):
         instance.transact().mint(recipient, 1, CategoryId.Founders)
 
 def test_mint_fails_when_category_invalid(chain, instance, token, recipient):
-    invalid_category = 4  # CategoryId enum is 0-4 only
+    invalid_category = 6
     with pytest.raises(TransactionFailed):
         instance.transact().mint(recipient, 1, invalid_category)
 
