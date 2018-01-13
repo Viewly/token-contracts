@@ -1,4 +1,5 @@
 import click
+import stringcase
 from populus import Project
 from utils import (
     load_contract,
@@ -10,9 +11,9 @@ from base_deployer import BaseDeployer
 
 working_dir = ensure_working_dir()
 
-class MintTokens(BaseDeployer):
-    __target__ = 'MintTokens'
-    __dependencies__ = ['DSGuard', 'DSToken']
+class TokenMintage(BaseDeployer):
+    __target__ = 'ViewlyTokenMintage'
+    __dependencies__ = ['ViewAuthority', 'ViewToken']
 
     def __init__(self,
                  chain_name,
@@ -34,8 +35,8 @@ class MintTokens(BaseDeployer):
         self.instance = instance
 
         self.dependencies = {
-            'DSToken': kwargs.get('DSToken'),
-            'DSGuard': kwargs.get('DSGuard'),
+            'ViewToken': kwargs.get('ViewToken'),
+            'ViewAuthority': kwargs.get('ViewAuthority'),
         }
 
 
@@ -45,14 +46,14 @@ class MintTokens(BaseDeployer):
             raise ValueError(f"Instance already deployed at {self.instance.address}")
 
         self.instance = self.deploy_contract(
-            contract_name='MintTokens',
-            args=[self.dependencies['DSToken'].address])
+            contract_name='ViewlyTokenMintage',
+            args=[self.dependencies['ViewToken'].address])
         print(f'{self.__target__} address is', self.instance.address)
 
         self.authority_permit_any(
-            authority=self.dependencies['DSGuard'],
+            authority=self.dependencies['ViewAuthority'],
             src_address=self.instance.address,
-            dst_address=self.dependencies['DSToken'].address)
+            dst_address=self.dependencies['ViewToken'].address)
 
     def deprecate(self):
         """ Destroy this contract, and clean up."""
@@ -67,7 +68,7 @@ class MintTokens(BaseDeployer):
         print(f'Writing ABIs to {working_dir / "build"}')
         write_json(
             self.instance.abi,
-            f'build/{self.__target__}.abi.json')
+            f'build/{stringcase.snakecase(self.__target__)}.abi.json')
 
 
 @click.command()
@@ -75,23 +76,23 @@ class MintTokens(BaseDeployer):
               type=str, help='Name of ETH Chain')
 @click.option('--owner', default=None,
               type=str, help='Account to deploy from')
-@click.argument('ds-guard-addr', type=str)
-@click.argument('ds-token-addr', type=str)
-def deploy(chain_name, owner, ds_guard_addr, ds_token_addr):
-    """ Deploy MintTokens """
+@click.argument('view-authority-addr', type=str)
+@click.argument('view-token-addr', type=str)
+def deploy(chain_name, owner, view_authority_addr, view_token_addr):
+    """ Deploy ViewlyTokenMintage """
     with Project().get_chain(chain_name) as chain:
-        ds_token = load_contract(chain, 'DSToken', ds_token_addr)
-        ds_guard = load_contract(chain, 'DSGuard', ds_guard_addr)
+        view_token = load_contract(chain, 'DSToken', view_token_addr)
+        view_authority = load_contract(chain, 'DSGuard', view_authority_addr)
         deps = {
-            'DSGuard': ds_guard,
-            'DSToken': ds_token,
+            'ViewAuthority': view_authority,
+            'ViewToken': view_token,
         }
-        deployer = MintTokens(chain_name, chain, owner=owner, **deps)
+        deployer = TokenMintage(chain_name, chain, owner=owner, **deps)
         print(f'Head block is {deployer.web3.eth.blockNumber} '
               f'on the "{chain_name}" chain')
         print('Owner address is', deployer.owner)
-        print('DSGuard address is', ds_guard.address)
-        print('DSToken address is', ds_token.address)
+        print('ViewAuthority address is', view_authority.address)
+        print('ViewToken address is', view_token.address)
 
         if confirm_deployment(chain_name, deployer.__target__):
             deployer.deploy()

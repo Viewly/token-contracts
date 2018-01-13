@@ -1,4 +1,5 @@
 import click
+import stringcase
 from populus import Project
 from utils import (
     write_json,
@@ -27,41 +28,41 @@ class SeedSale(BaseDeployer):
 
         # multi-contract instances
         self.instances = {
-            'DSGuard': kwargs.get('DSGuard'),
-            'DSToken': kwargs.get('DSToken'),
+            'ViewAuthority': kwargs.get('ViewAuthority'),
+            'ViewToken': kwargs.get('ViewToken'),
             'ViewlySeedSale': kwargs.get('ViewlySeedSale'),
         }
 
 
     def deploy(self, beneficiary: str):
         # ViewAuthority
-        if not self.instances['DSGuard']:
-            self.instances['DSGuard'] = \
+        if not self.instances['ViewAuthority']:
+            self.instances['ViewAuthority'] = \
                 self.deploy_contract('DSGuard', gas=1_340_000)
-            print(f"DSGuard address: {self.instances['DSGuard'].address}")
+            print(f"ViewAuthority address: {self.instances['ViewAuthority'].address}")
 
         # ViewToken
-        if not self.instances['DSToken']:
-            self.instances['DSToken'] = \
+        if not self.instances['ViewToken']:
+            self.instances['ViewToken'] = \
                 self.deploy_contract('DSToken', args=['VIEW'], gas=2_000_000)
 
-            tx = self.instances['DSToken'] \
+            tx = self.instances['ViewToken'] \
                 .transact({"from": self.owner}) \
-                .setAuthority(self.instances['DSGuard'].address)
+                .setAuthority(self.instances['ViewAuthority'].address)
             check_succesful_tx(self.web3, tx)
-            print(f"DSToken address: {self.instances['DSToken'].address}")
+            print(f"ViewToken address: {self.instances['ViewToken'].address}")
 
         # Seed Sale
         if not self.instances['ViewlySeedSale']:
             self.instances['ViewlySeedSale'] = \
                 self.deploy_contract(
                     'ViewlySeedSale',
-                    args=[self.instances['DSToken'].address, beneficiary])
+                    args=[self.instances['ViewToken'].address, beneficiary])
 
             self.authority_permit_any(
-                authority = self.instances['DSGuard'],
+                authority = self.instances['ViewAuthority'],
                 src_address = self.instances['ViewlySeedSale'].address,
-                dst_address = self.instances['DSToken'].address,
+                dst_address = self.instances['ViewToken'].address,
             )
             print(f"ViewlySeedSale address: {self.instances['ViewlySeedSale'].address}")
 
@@ -72,7 +73,8 @@ class SeedSale(BaseDeployer):
         print(f'Writing ABIs to {working_dir / "build"}')
         for name, instance in self.instances.items():
             if instance:
-                write_json(instance.abi, f'build/{name}.abi.json')
+                abi_file = f'{stringcase.snakecase(name)}.abi.json'
+                write_json(instance.abi, f'build/{abi_file}')
 
 
 @click.command()
