@@ -5,6 +5,7 @@ import web3
 from web3.utils.validation import validate_address
 from toolz import pipe, keymap
 from eth_utils import to_wei
+from pathlib import Path
 
 from utils import (
     load_json,
@@ -145,11 +146,12 @@ def cli():
 
 @cli.command(name='import-txs')
 @click.argument('payout-sheet-file', type=click.Path(exists=True))
-@click.argument('db-file', type=click.Path(exists=False))
+@click.argument('db-file', required=False, type=click.Path(exists=False))
 def cli_import_txs(payout_sheet_file, db_file):
     """Import transactions from json file to a new database for processing."""
     txs = txs_from_file(payout_sheet_file)
 
+    db_file = db_file or f'{Path(payout_sheet_file).stem}.db'
     if os.path.exists(db_file):
         click.confirm(f'Database {db_file} already exists. Overwrite?',
                       abort=True)
