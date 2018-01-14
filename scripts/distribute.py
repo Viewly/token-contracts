@@ -221,7 +221,12 @@ def cli_verify(chain_provider, chain_name, db_file):
      WHERE success = 0 AND txid IS NOT NULL;
     """
     for id_, txid in query_all(db_file, q):
-        if is_tx_successful(w3, txid):
+        try:
+            success = is_tx_successful(w3, txid)
+        except:
+            print(f'Unable to verify {txid}. Try again later.')
+            continue
+        if success:
             mark_tx_as_successful(db_file, id_)
             print(f'{txid} is OK.')
         else:
