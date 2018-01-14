@@ -170,7 +170,7 @@ def cli_import_txs(payout_sheet_file, db_file):
 @click.option('--abi-path', default='build/view_token_mintage.abi.json',
               type=click.Path(exists=True),
               help='ABI of the token minting contract')
-@click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
+@click.argument('db-file', type=click.Path(exists=True))
 def cli_payout(
     chain_provider,
     chain_name,
@@ -208,7 +208,7 @@ def cli_payout(
               help='Chain Provider (parity, geth, tester...)')
 @click.option('--chain', 'chain_name', default='mainnet', type=str,
               help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
-@click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
+@click.argument('db-file', type=click.Path(exists=True))
 def cli_verify(chain_provider, chain_name, db_file):
     """Verify paid tx's in the specified database."""
     w3 = get_chain(chain_provider, chain_name)
@@ -230,7 +230,7 @@ def cli_verify(chain_provider, chain_name, db_file):
 @cli.command(name='export-txs')
 @click.option('--chain', 'chain_name', default='mainnet', type=str,
               help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
-@click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
+@click.argument('db-file', type=click.Path(exists=True))
 def cli_export_txs(chain_name, db_file):
     """Export the database into a Google Sheet friendly csv."""
     q = """
