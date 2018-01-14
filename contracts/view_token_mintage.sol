@@ -44,7 +44,7 @@ contract ViewTokenMintage is DSAuth, DSMath {
         categories[uint8(CategoryId.Founders)]   = Category(18 * MILLION, 0 ether);
         categories[uint8(CategoryId.Supporters)] = Category(9 * MILLION, 0 ether);
         categories[uint8(CategoryId.Creators)]   = Category(20 * MILLION, 0 ether);
-        categories[uint8(CategoryId.Bounties)]   = Category(3 * MILLION, 0 ether);
+        categories[uint8(CategoryId.Bounties)]   = Category(3 * MILLION, 113528 ether);
         categories[uint8(CategoryId.SeedSale)]   = Category(10 * MILLION, 10 * MILLION);
         categories[uint8(CategoryId.MainSale)]   = Category(40 * MILLION, 0 ether);
     }
