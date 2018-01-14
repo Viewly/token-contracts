@@ -102,3 +102,11 @@ def test_mint_fails_when_not_authorized(chain, instance, token, recipient):
     with pytest.raises(TransactionFailed):
         instance.transact(
             {"from": recipient}).mint(recipient, 1, CategoryId.Founders)
+
+def test_destruct(chain, instance, token, owner):
+    instance.transact().mint(owner, 1, CategoryId.Founders)
+    instance.transact().destruct(owner)
+
+    # minting doesn't work after contract is destructed
+    with pytest.raises(Exception):
+        instance.transact().mint(recipient, 1, CategoryId.Founders)
