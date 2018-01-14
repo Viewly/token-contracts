@@ -5,6 +5,7 @@ import web3
 from web3.utils.validation import validate_address
 from toolz import pipe, keymap
 from eth_utils import to_wei
+from pathlib import Path
 
 from utils import (
     load_json,
@@ -95,7 +96,7 @@ def mint_tokens(
     """ Call `mint` function on target contract.
 
     Args:
-        instance: A ViewlyTokenMintage live and initialized contract instance.
+        instance: A ViewTokenMintage live and initialized contract instance.
         owner: An authorized Ethereum account to call the minting contract from.
         recipient: Address of VIEW Token Recipient.
         amount: Amount of VIEW Tokens to mint.
@@ -145,11 +146,12 @@ def cli():
 
 @cli.command(name='import-txs')
 @click.argument('payout-sheet-file', type=click.Path(exists=True))
-@click.argument('db-file', type=click.Path(exists=False))
+@click.argument('db-file', required=False, type=click.Path(exists=False))
 def cli_import_txs(payout_sheet_file, db_file):
     """Import transactions from json file to a new database for processing."""
     txs = txs_from_file(payout_sheet_file)
 
+    db_file = db_file or f'{Path(payout_sheet_file).stem}.db'
     if os.path.exists(db_file):
         click.confirm(f'Database {db_file} already exists. Overwrite?',
                       abort=True)
@@ -166,11 +168,11 @@ def cli_import_txs(payout_sheet_file, db_file):
 @click.option('--owner', default=None, type=str,
               help='Account to call the contract from')
 @click.option('--contract-address', prompt=True, type=str,
-              help='Address of the token minting contract')
-@click.option('--abi-path', default='build/viewly_token_mintage.abi.json',
+              help='Address of ViewTokenMintage contract')
+@click.option('--abi-path', default='build/view_token_mintage.abi.json',
               type=click.Path(exists=True),
               help='ABI of the token minting contract')
-@click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
+@click.argument('db-file', type=click.Path(exists=True))
 def cli_payout(
     chain_provider,
     chain_name,
@@ -208,7 +210,7 @@ def cli_payout(
               help='Chain Provider (parity, geth, tester...)')
 @click.option('--chain', 'chain_name', default='mainnet', type=str,
               help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
-@click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
+@click.argument('db-file', type=click.Path(exists=True))
 def cli_verify(chain_provider, chain_name, db_file):
     """Verify paid tx's in the specified database."""
     w3 = get_chain(chain_provider, chain_name)
@@ -230,7 +232,7 @@ def cli_verify(chain_provider, chain_name, db_file):
 @cli.command(name='export-txs')
 @click.option('--chain', 'chain_name', default='mainnet', type=str,
               help='Name of ETH Chain (mainnet, kovan, rinkeby...)')
-@click.argument('db-file', default='payouts.db', type=click.Path(exists=True))
+@click.argument('db-file', type=click.Path(exists=True))
 def cli_export_txs(chain_name, db_file):
     """Export the database into a Google Sheet friendly csv."""
     q = """

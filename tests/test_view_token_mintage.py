@@ -7,7 +7,7 @@ from ethereum.tester import TransactionFailed
 
 from helpers import deploy_contract
 
-contract_name = 'ViewlyTokenMintage'
+contract_name = 'ViewTokenMintage'
 
 class CategoryId:
     Founders   = 0
