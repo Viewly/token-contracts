@@ -95,7 +95,7 @@ def mint_tokens(
     """ Call `mint` function on target contract.
 
     Args:
-        instance: A ViewlyTokenMintage live and initialized contract instance.
+        instance: A ViewTokenMintage live and initialized contract instance.
         owner: An authorized Ethereum account to call the minting contract from.
         recipient: Address of VIEW Token Recipient.
         amount: Amount of VIEW Tokens to mint.
@@ -166,8 +166,8 @@ def cli_import_txs(payout_sheet_file, db_file):
 @click.option('--owner', default=None, type=str,
               help='Account to call the contract from')
 @click.option('--contract-address', prompt=True, type=str,
-              help='Address of the token minting contract')
-@click.option('--abi-path', default='build/viewly_token_mintage.abi.json',
+              help='Address of ViewTokenMintage contract')
+@click.option('--abi-path', default='build/view_token_mintage.abi.json',
               type=click.Path(exists=True),
               help='ABI of the token minting contract')
 @click.argument('db-file', default='payouts.db', type=click.Path(exists=True))

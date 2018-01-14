@@ -8,11 +8,11 @@ import "./dappsys/token.sol";
 import "./dappsys/auth.sol";
 
 /*
- * ViewlyTokenMintage contract is used to mint VIEW Tokens within the
+ * ViewTokenMintage contract is used to mint VIEW Tokens within the
  * constraints set in the Viewly Whitepaper. It tracks total minted tokens for
  * each distribution category.
  */
-contract ViewlyTokenMintage is DSAuth, DSMath {
+contract ViewTokenMintage is DSAuth, DSMath {
 
     enum CategoryId {
         Founders,
@@ -37,7 +37,7 @@ contract ViewlyTokenMintage is DSAuth, DSMath {
         CategoryId category
     );
 
-    function ViewlyTokenMintage(DSToken viewToken_) {
+    function ViewTokenMintage(DSToken viewToken_) {
         viewToken = viewToken_;
 
         uint MILLION = 1000000 ether;

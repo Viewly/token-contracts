@@ -12,7 +12,7 @@ from base_deployer import BaseDeployer
 working_dir = ensure_working_dir()
 
 class TokenMintage(BaseDeployer):
-    __target__ = 'ViewlyTokenMintage'
+    __target__ = 'ViewTokenMintage'
     __dependencies__ = ['ViewAuthority', 'ViewToken']
 
     def __init__(self,
@@ -46,7 +46,7 @@ class TokenMintage(BaseDeployer):
             raise ValueError(f"Instance already deployed at {self.instance.address}")
 
         self.instance = self.deploy_contract(
-            contract_name='ViewlyTokenMintage',
+            contract_name='ViewTokenMintage',
             args=[self.dependencies['ViewToken'].address])
         print(f'{self.__target__} address is', self.instance.address)
 
@@ -79,7 +79,7 @@ class TokenMintage(BaseDeployer):
 @click.argument('view-authority-addr', type=str)
 @click.argument('view-token-addr', type=str)
 def deploy(chain_name, owner, view_authority_addr, view_token_addr):
-    """ Deploy ViewlyTokenMintage """
+    """ Deploy ViewTokenMintage """
     with Project().get_chain(chain_name) as chain:
         view_token = load_contract(chain, 'DSToken', view_token_addr)
         view_authority = load_contract(chain, 'DSGuard', view_authority_addr)
