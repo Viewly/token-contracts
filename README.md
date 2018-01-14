@@ -1,18 +1,29 @@
 ![](https://i.imgur.com/ekvJd60.png)
 
-*Viewly is building a decentralized YouTube, with crypto powered monetization models for
-content creators.*  
-Learn more at https://view.ly
+*Viewly is building a decentralized video platform.* Learn more at https://view.ly
 
 [![CircleCI](https://circleci.com/gh/Viewly/token-contracts.svg?style=svg&circle-token=1e0971075338fce5801b9f32a1e709c2692e49e0)](https://circleci.com/gh/Viewly/token-contracts)
 # Viewly Token Contracts
 
 ## Dependencies
-Viewly smart contracts are leveraging the [Dappsys](https://dappsys.readthedocs.io/en/latest/) framework, because Dappsys provides clean and well written implementations of things like safe math, ERC-20 token and multisig.
+Viewly smart contracts are leveraging the
+[Dappsys](https://dappsys.readthedocs.io/en/latest/) framework, because Dappsys
+provides clean and well written implementations of things like safe math, ERC-20
+token and multisig.
 
-We are also using [Populus](http://populus.readthedocs.io/en/latest/) as a development framework. The Viewly contract testing is fully automated, and the tests are written in Python.
+We are also using [Populus](http://populus.readthedocs.io/en/latest/) as a
+development framework. The Viewly contract testing is fully automated, and the
+tests are written in Python.
 
-## Running Locally
+For managing dependencies we use [Pipenv](https://pypi.python.org/pypi/pipenv).
+Make sure you have it installed.
+
+To install all project dependencies, run:
+```
+pipenv install
+```
+
+## Running locally (inside pipenv shell):
 To compile the contracts, run:
 ```
 populus compile
@@ -20,7 +31,7 @@ populus compile
 
 To test the contracts, run:
 ```
-pytest tests/
+pytest
 ```
 
 To deploy the contract(s) run their deployment script:
@@ -54,15 +65,26 @@ geth --testnet --fast --etherbase "0x25b99234a1d2e37fe340e8f9046d0cf0d9558c58"
 ```
 *The etherbase account is the `owner` in the deployer scripts.*
 
-
 Then you can deploy the contract to testnet with given multisig address as
 beneficiary with:
 ```
 python deploy/seed_sale.py --chain ropsten <args...>
 ```
 
-## Running on a testnet (parity)
+## Deploying to production
+Make sure you are running mainnet node (parity or geth) with RPC/HTTP interace
+open.
+
+Deploy sale contract with:
 ```
-parity --light --chain=kovan --ui-port 8080 ui
+python deploy/seed_sale.py --chain mainnet <args...>
 ```
 
+Deploy token mintage contract with:
+```
+python deploy/token_mintage.py --chain mainnet <args...>
+```
+
+## Deployed contracts
+- [ViewToken](https://etherscan.io/address/0xf03f8d65bafa598611c3495124093c56e8f638f0)
+- [ViewlySeedSale](https://etherscan.io/address/0xdbdb79ad0a2243c947cc413798e8b90caba0b9df)
