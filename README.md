@@ -87,4 +87,5 @@ python deploy/token_mintage.py --chain mainnet <args...>
 
 ## Deployed contracts
 - [ViewToken](https://etherscan.io/address/0xf03f8d65bafa598611c3495124093c56e8f638f0)
+- [ViewTokenMintage](https://etherscan.io/address/0x463979a2dc1a19005b6143681244b8a3af115571)
 - [ViewlySeedSale](https://etherscan.io/address/0xdbdb79ad0a2243c947cc413798e8b90caba0b9df)
