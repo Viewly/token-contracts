@@ -47,6 +47,9 @@ contract ViewTokenMintage is DSAuth, DSMath {
         categories[uint8(CategoryId.Bounties)]   = Category(3 * MILLION, 113528 ether);
         categories[uint8(CategoryId.SeedSale)]   = Category(10 * MILLION, 10 * MILLION);
         categories[uint8(CategoryId.MainSale)]   = Category(40 * MILLION, 0 ether);
+
+        // Total VIEW token mintage supply must be limited to exactly 100M
+        assert(totalMintLimit() == 100 * MILLION);
     }
 
     function mint(address recipient, uint tokens, CategoryId categoryId) auth {
@@ -61,5 +64,13 @@ contract ViewTokenMintage is DSAuth, DSMath {
 
     function destruct(address addr) auth {
         selfdestruct(addr);
+    }
+
+    function totalMintLimit() view returns (uint total) {
+      for (var i = 0; i < categories.length; i ++) {
+        total = add(total, categories[i].mintLimit);
+      }
+
+      return total;
     }
 }

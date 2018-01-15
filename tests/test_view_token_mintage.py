@@ -110,3 +110,6 @@ def test_destruct(chain, instance, token, owner):
     # minting doesn't work after contract is destructed
     with pytest.raises(Exception):
         instance.transact().mint(recipient, 1, CategoryId.Founders)
+
+def test_total_mint_limit(chain, instance):
+    assert instance.call().totalMintLimit() == to_wei(100_000_000, 'ether')
