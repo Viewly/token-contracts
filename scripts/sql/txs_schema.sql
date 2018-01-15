@@ -10,4 +10,4 @@ CREATE TABLE txs (
     success Boolean DEFAULT 0
 );
 
-CREATE UNIQUE INDEX unique_payment ON txs (recipient, amount, bucket);
+-- CREATE UNIQUE INDEX unique_payment ON txs (recipient, amount, bucket);

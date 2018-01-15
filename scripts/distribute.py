@@ -48,7 +48,11 @@ def validated_payouts(payouts_in):
     """
     # swap bucket name with matching ID
     payouts = [
-        {**x, 'bucket': buckets[x['bucket'].lower().title()]}
+        {
+            **x,
+            'bucket': buckets[x['bucket'].lower().title()],
+            'amount': float(x['amount'].replace(',', '')),
+        }
         for x in (keymap(rename_field, y) for y in payouts_in)
     ]
 
