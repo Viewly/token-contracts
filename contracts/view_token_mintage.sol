@@ -37,7 +37,7 @@ contract ViewTokenMintage is DSAuth, DSMath {
         CategoryId category
     );
 
-    function ViewTokenMintage(DSToken viewToken_) {
+    function ViewTokenMintage(DSToken viewToken_) public {
         viewToken = viewToken_;
 
         uint MILLION = 1000000 ether;
@@ -52,9 +52,9 @@ contract ViewTokenMintage is DSAuth, DSMath {
         assert(totalMintLimit() == 100 * MILLION);
     }
 
-    function mint(address recipient, uint tokens, CategoryId categoryId) auth {
+    function mint(address recipient, uint tokens, CategoryId categoryId) public auth {
         require(tokens > 0);
-        Category category = categories[uint8(categoryId)];
+        Category storage category = categories[uint8(categoryId)];
         require(add(tokens, category.amountMinted) <= category.mintLimit);
 
         categories[uint8(categoryId)].amountMinted += tokens;
@@ -62,12 +62,12 @@ contract ViewTokenMintage is DSAuth, DSMath {
         TokensMinted(recipient, tokens, categoryId);
     }
 
-    function destruct(address addr) auth {
+    function destruct(address addr) public auth {
         selfdestruct(addr);
     }
 
-    function totalMintLimit() view returns (uint total) {
-      for (var i = 0; i < categories.length; i ++) {
+    function totalMintLimit() public view returns (uint total) {
+      for (uint8 i = 0; i < categories.length; i ++) {
         total = add(total, categories[i].mintLimit);
       }
 
