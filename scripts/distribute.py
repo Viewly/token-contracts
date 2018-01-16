@@ -23,7 +23,7 @@ from db import (
     mark_tx_for_retry,
 )
 
-roles = 'Founders Supporters Creators Bounties SeedSale MainSale'.split(' ')
+roles = 'Team Supporters Creators Bounties SeedSale MainSale'.split(' ')
 buckets = dict(zip(roles, range(len(roles))))
 
 def rename_field(field_name):
@@ -48,11 +48,7 @@ def validated_payouts(payouts_in):
     """
     # swap bucket name with matching ID
     payouts = [
-        {
-            **x,
-            'bucket': buckets[x['bucket'].lower().title()],
-            'amount': float(x['amount'].replace(',', '')),
-        }
+        {**x, 'bucket': buckets[x['bucket'].lower().title()]}
         for x in (keymap(rename_field, y) for y in payouts_in)
     ]
 
@@ -104,7 +100,7 @@ def mint_tokens(
         owner: An authorized Ethereum account to call the minting contract from.
         recipient: Address of VIEW Token Recipient.
         amount: Amount of VIEW Tokens to mint.
-        bucket: A bucket number of the funding source (Founders, Supporters...)
+        bucket: A bucket number of the funding source (Team, Supporters...)
 
     Returns:
         txid: Transaction ID of the function call
@@ -225,12 +221,7 @@ def cli_verify(chain_provider, chain_name, db_file):
      WHERE success = 0 AND txid IS NOT NULL;
     """
     for id_, txid in query_all(db_file, q):
-        try:
-            success = is_tx_successful(w3, txid)
-        except:
-            print(f'Unable to verify {txid}. Try again later.')
-            continue
-        if success:
+        if is_tx_successful(w3, txid):
             mark_tx_as_successful(db_file, id_)
             print(f'{txid} is OK.')
         else:
