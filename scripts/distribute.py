@@ -48,7 +48,11 @@ def validated_payouts(payouts_in):
     """
     # swap bucket name with matching ID
     payouts = [
-        {**x, 'bucket': buckets[x['bucket'].lower().title()]}
+        {
+            **x,
+            'bucket': buckets[x['bucket'].lower().title()],
+            'amount': float(x['amount'].replace(',', '')),
+        }
         for x in (keymap(rename_field, y) for y in payouts_in)
     ]
 
@@ -221,7 +225,12 @@ def cli_verify(chain_provider, chain_name, db_file):
      WHERE success = 0 AND txid IS NOT NULL;
     """
     for id_, txid in query_all(db_file, q):
-        if is_tx_successful(w3, txid):
+        try:
+            success = is_tx_successful(w3, txid)
+        except:
+            print(f'Unable to verify {txid}. Try again later.')
+            continue
+        if success:
             mark_tx_as_successful(db_file, id_)
             print(f'{txid} is OK.')
         else:
