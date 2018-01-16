@@ -15,7 +15,7 @@ import "./dappsys/auth.sol";
 contract ViewTokenMintage is DSAuth, DSMath {
 
     enum CategoryId {
-        Founders,
+        Team,
         Supporters,
         Creators,
         Bounties,
@@ -41,7 +41,7 @@ contract ViewTokenMintage is DSAuth, DSMath {
         viewToken = viewToken_;
 
         uint MILLION = 1000000 ether;
-        categories[uint8(CategoryId.Founders)]   = Category(18 * MILLION, 0 ether);
+        categories[uint8(CategoryId.Team)]       = Category(18 * MILLION, 0 ether);
         categories[uint8(CategoryId.Supporters)] = Category(9 * MILLION, 0 ether);
         categories[uint8(CategoryId.Creators)]   = Category(20 * MILLION, 0 ether);
         categories[uint8(CategoryId.Bounties)]   = Category(3 * MILLION, 113528 ether);
