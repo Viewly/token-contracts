@@ -58,7 +58,8 @@ contract ViewTokenMintage is DSAuth, DSMath {
         require(add(tokens, category.amountMinted) <= category.mintLimit);
 
         categories[uint8(categoryId)].amountMinted += tokens;
-        viewToken.mint(recipient, tokens);
+        viewToken.mint(this, tokens);
+        viewToken.transferFrom(this, recipient, tokens);
         TokensMinted(recipient, tokens, categoryId);
     }
 
